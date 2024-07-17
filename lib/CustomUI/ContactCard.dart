@@ -16,11 +16,11 @@ class _ContactCardState extends State<ContactCard> {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      onTap: () {
-        setState(() {
-          isSelected = !isSelected;
-        });
-      },
+      // onTap: () {
+      //   setState(() {
+      //     isSelected = !isSelected;
+      //   });
+      // },
       leading: Container(
         height: 55,
         width: 50,

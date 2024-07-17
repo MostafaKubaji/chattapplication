@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:camera/camera.dart';
 import 'package:chattapplication/Screens/CameraView.dart';
 import 'package:flutter/material.dart';
@@ -109,16 +107,19 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   void takePhoto(BuildContext context) async {
-    final dir = await getTemporaryDirectory();
-    final path = join(dir.path, "${DateTime.now().toIso8601String()}.png");
-    await _cameraController?.takePicture ?? (path);
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (builder) => CameraViewPage(
-          path: path,
+    // final dir = await getTemporaryDirectory();
+    // final path = join(dir.path, "${DateTime.now().toIso8601String()}.png");
+    final xFile = await _cameraController?.takePicture();
+    final imagePath = xFile?.path;
+    if (imagePath != null) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (builder) => CameraViewPage(
+            path: imagePath,
+          ),
         ),
-      ),
-    );
+      );
+    }
   }
 }

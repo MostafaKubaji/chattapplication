@@ -1,4 +1,5 @@
 class ChatModel {
+  
   String? name;
   String? icon;
   bool? isGroup;
