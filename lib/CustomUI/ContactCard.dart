@@ -16,11 +16,6 @@ class _ContactCardState extends State<ContactCard> {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      // onTap: () {
-      //   setState(() {
-      //     isSelected = !isSelected;
-      //   });
-      // },
       leading: Container(
         height: 55,
         width: 50,
@@ -30,22 +25,22 @@ class _ContactCardState extends State<ContactCard> {
               radius: 23,
               child: SvgPicture.asset(
                 "assets/person.svg",
-                color: Colors.white,
+                color: Color(0xffFFFFFF), // لون الأيقونات
                 height: 40,
                 width: 40,
               ),
-              backgroundColor: Colors.blueGrey,
+              backgroundColor: Color(0xff33415C), // لون خلفية الدائرة
             ),
             isSelected
                 ? Positioned(
                     bottom: 4,
                     right: 5,
                     child: CircleAvatar(
-                      backgroundColor: Colors.teal,
+                      backgroundColor: Color(0xff0466C8), // لون الخلفية عند تحديد العنصر
                       radius: 11,
                       child: Icon(
                         Icons.check,
-                        color: Colors.white,
+                        color: Color(0xffFFFFFF), // لون الأيقونة
                         size: 18,
                       ),
                     ),
@@ -56,11 +51,18 @@ class _ContactCardState extends State<ContactCard> {
       ),
       title: Text(
         widget.contact?.name ?? '',
-        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+        style: TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.bold,
+          color: Color(0xff023E7D), // لون النص
+        ),
       ),
       subtitle: Text(
         widget.contact?.status ?? '',
-        style: TextStyle(fontSize: 13),
+        style: TextStyle(
+          fontSize: 13,
+          color: Color(0xff7D8597), // لون النص
+        ),
       ),
     );
   }

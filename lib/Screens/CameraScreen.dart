@@ -1,8 +1,8 @@
+import 'dart:math';
+
 import 'package:camera/camera.dart';
 import 'package:chattapplication/Screens/CameraView.dart';
 import 'package:flutter/material.dart';
-import 'package:path/path.dart';
-import 'package:path_provider/path_provider.dart';
 
 List<CameraDescription>? cameras;
 
@@ -16,6 +16,9 @@ class CameraScreen extends StatefulWidget {
 class _CameraScreenState extends State<CameraScreen> {
   CameraController? _cameraController;
   Future<void>? cameraValue;
+  bool flash = false;
+  bool isCameraFront = true;
+  double transformCamera = 0;
 
   @override
   void initState() {
@@ -41,7 +44,11 @@ class _CameraScreenState extends State<CameraScreen> {
             future: cameraValue,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.done) {
-                return CameraPreview(_cameraController!);
+                return Container(
+                  width: MediaQuery.of(context).size.width,
+                  height: MediaQuery.of(context).size.height,
+                  child: CameraPreview(_cameraController!),
+                );
               } else {
                 return Center(
                   child: CircularProgressIndicator(),
@@ -61,12 +68,19 @@ class _CameraScreenState extends State<CameraScreen> {
                     mainAxisSize: MainAxisSize.max,
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      InkWell(
-                        onTap: () {},
-                        child: Icon(
-                          Icons.flash_off,
+                      IconButton(
+                        onPressed: () {
+                          setState(() {
+                            flash = !flash;
+                          });
+                          flash
+                              ? _cameraController?.setFlashMode(FlashMode.torch)
+                              : _cameraController?.setFlashMode(FlashMode.off);
+                        },
+                        icon: Icon(
+                          flash ? Icons.flash_on : Icons.flash_off,
                           color: Colors.white,
-                          size: 28,
+                          size: 30,
                         ),
                       ),
                       InkWell(
@@ -80,8 +94,22 @@ class _CameraScreenState extends State<CameraScreen> {
                         ),
                       ),
                       IconButton(
-                        onPressed: () {},
-                        icon: Icon(Icons.flip_camera_ios_outlined),
+                        onPressed: () async {
+                          setState(() {
+                            isCameraFront = !isCameraFront;
+                            transformCamera = transformCamera + pi;
+                          });
+                          int cameraPosition = isCameraFront ? 0 : 1;
+                          if (cameras != null && cameras!.isNotEmpty) {
+                            _cameraController = CameraController(
+                                cameras![cameraPosition], ResolutionPreset.high);
+                            cameraValue = _cameraController!.initialize();
+                          }
+                        },
+                        icon: Transform.rotate(
+                          angle: transformCamera,
+                          child: Icon(Icons.flip_camera_ios_outlined),
+                        ),
                         color: Colors.white,
                         iconSize: 40,
                       ),
@@ -96,7 +124,7 @@ class _CameraScreenState extends State<CameraScreen> {
                       color: Colors.white,
                     ),
                     textAlign: TextAlign.center,
-                  )
+                  ),
                 ],
               ),
             ),
@@ -107,8 +135,6 @@ class _CameraScreenState extends State<CameraScreen> {
   }
 
   void takePhoto(BuildContext context) async {
-    // final dir = await getTemporaryDirectory();
-    // final path = join(dir.path, "${DateTime.now().toIso8601String()}.png");
     final xFile = await _cameraController?.takePicture();
     final imagePath = xFile?.path;
     if (imagePath != null) {

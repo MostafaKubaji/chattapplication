@@ -1,10 +1,11 @@
+import 'package:chattapplication/Model/ChatModel.dart';
 import 'package:chattapplication/Pages/CameraPage.dart';
 import 'package:chattapplication/Pages/ChatPage.dart';
 import 'package:flutter/material.dart';
-
-
 class Homescreen extends StatefulWidget {
-  const Homescreen({super.key});
+  const Homescreen({super.key,this.chatmodels,this.sourcechat});
+  final List<ChatModel>? chatmodels;
+  final ChatModel? sourcechat;
 
   @override
   State<Homescreen> createState() => _HomescreenState();
@@ -24,16 +25,27 @@ class _HomescreenState extends State<Homescreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Whatsapp"),
-        shadowColor: Color(0xff128c7e),
-        
+        title: Text(
+          "RSA Project",
+          style: TextStyle(color: Colors.white),
+        ),
+        backgroundColor: Color(0xff023E7D), // تعديل اللون الأساسي ل AppBar
+        shadowColor: Color(0xff33415C),
         actions: [
-          IconButton(onPressed: () {}, icon: Icon(Icons.search)),
+          IconButton(
+              onPressed: () {},
+              icon: Icon(
+                Icons.search,
+                color: Colors.white,
+              )),
           PopupMenuButton<String>(
-            onSelected:(value){
+            icon: Icon(
+              Icons.more_vert,
+              color: Colors.white,
+            ),
+            onSelected: (value) {
               print(value);
-
-            } ,
+            },
             itemBuilder: (BuildContext context) {
               return [
                 PopupMenuItem(
@@ -64,7 +76,7 @@ class _HomescreenState extends State<Homescreen>
           controller: _controller,
           indicatorColor: Colors.white,
           labelColor: Colors.white,
-          unselectedLabelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
           tabs: [
             Tab(
               icon: Icon(Icons.camera_alt),
@@ -76,7 +88,6 @@ class _HomescreenState extends State<Homescreen>
               text: "STATUS",
             ),
             Tab(
-              
               text: "CALLS",
             ),
           ],
@@ -86,7 +97,10 @@ class _HomescreenState extends State<Homescreen>
         controller: _controller,
         children: [
           CameraPage(),
-          Chatpage(),
+          Chatpage(
+            chatmodels: widget.chatmodels,
+            sourcechat: widget.sourcechat,
+          ),
           Text("STATUS"),
           Text("CALLS"),
         ],

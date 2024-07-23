@@ -37,6 +37,7 @@ dependencies:
   camera: ^0.10.0+1 # تأكد من استخدام أحدث إصدار متاح
   path_provider: ^2.0.14 # تأكد من استخدام أحدث إصدار متاح
   path: ^1.8.3 
+  socket_io_client: ^2.0.3
 
 
 dev_dependencies:

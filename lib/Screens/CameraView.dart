@@ -71,11 +71,10 @@ class CameraViewPage extends StatelessWidget {
                     color: Colors.white,
                     fontSize: 18,
                   ),
-                  
                   decoration: InputDecoration(
                     border: InputBorder.none,
                     hintText: "Add caption...",
-                    prefix: Icon(
+                    prefixIcon: Icon(
                       Icons.add_photo_alternate,
                       color: Colors.white,
                       size: 18,
@@ -86,11 +85,11 @@ class CameraViewPage extends StatelessWidget {
                     ),
                     suffixIcon: CircleAvatar(
                       radius: 28,
+                      backgroundColor: Color.fromARGB(255, 21, 97, 168), // تغيير لون الخلفية هنا
                       child: Icon(
                         Icons.check,
                         color: Colors.white,
                       ),
-                      backgroundColor: Colors.teal,
                     ),
                   ),
                 ),

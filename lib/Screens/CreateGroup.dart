@@ -13,15 +13,15 @@ class CreateGroup extends StatefulWidget {
 class _CreateGroupState extends State<CreateGroup> {
   List<ChatModel> contacts = [
     ChatModel(name: 'Ali', status: "a full stack developer"),
-    ChatModel(name: 'mostafa', status: 'Flutter developer'),
+    ChatModel(name: 'Mostafa', status: 'Flutter developer'),
     ChatModel(name: 'Sara', status: 'C# developer'),
-    ChatModel(name: 'OctoTech', status: 'combane OctoTech '),
-    ChatModel(name: 'Abdo', status: 'Java'),
+    ChatModel(name: 'OctoTech', status: 'Company OctoTech'),
+    ChatModel(name: 'Abdo', status: 'Java developer'),
     ChatModel(name: 'Ali2', status: "a full stack developer"),
-    ChatModel(name: 'mostafa2', status: 'Flutter developer'),
+    ChatModel(name: 'Mostafa2', status: 'Flutter developer'),
     ChatModel(name: 'Sara2', status: 'C# developer'),
-    ChatModel(name: 'OctoTech2', status: 'combane OctoTech '),
-    ChatModel(name: 'Abdo2', status: 'Java'),
+    ChatModel(name: 'OctoTech2', status: 'Company OctoTech'),
+    ChatModel(name: 'Abdo2', status: 'Java developer'),
   ];
   List<ChatModel> groupMember = [];
 
@@ -29,6 +29,7 @@ class _CreateGroupState extends State<CreateGroup> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Color(0xff002855), // لون خلفية شريط التطبيق
         title: Column(
           mainAxisAlignment: MainAxisAlignment.start,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -36,16 +37,18 @@ class _CreateGroupState extends State<CreateGroup> {
             Text(
               "New Group",
               style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white),
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
             ),
             Text(
               "Add participants",
               style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white),
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
             )
           ],
         ),
@@ -89,7 +92,7 @@ class _CreateGroupState extends State<CreateGroup> {
             children: [
               Container(
                 height: 75,
-                color: Colors.white,
+                color: Color(0xfff1f1f1), // لون خلفية منطقة الأعضاء المحددين
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
                   itemCount: contacts.length,
