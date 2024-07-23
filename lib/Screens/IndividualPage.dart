@@ -41,7 +41,8 @@ void connect() {
   try {
     socket = IO.io("http://192.168.1.102:5000", <String, dynamic>{
       "transports": ["websocket"],
-      
+
+      //true
       "autoConnect": false,
     });
 
