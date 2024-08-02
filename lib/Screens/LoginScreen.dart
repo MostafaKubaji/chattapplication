@@ -14,7 +14,7 @@ class _LoginScreenState extends State<LoginScreen> {
   ChatModel? sourceChat;
   List<ChatModel> chatsModels = [
     ChatModel(
-      name: 'mostafa',
+      name: 'مصطفى',
       isGroup: false,
       currentMessage: 'hi mostafa',
       time: "4:00",
@@ -22,23 +22,23 @@ class _LoginScreenState extends State<LoginScreen> {
       id: 1,
     ),
     ChatModel(
-      name: 'Ahmad',
+      name: 'عمر المرعي',
       isGroup: false,
-      currentMessage: 'hi Ahmad',
+      currentMessage: 'hi Omar',
       time: "5:00",
       icon: 'person.svg',
       id: 2,
     ),
     ChatModel(
-      name: 'Ali',
+      name: 'محمد سكندر',
       isGroup: false,
-      currentMessage: 'hi Ali',
+      currentMessage: 'hi Mohamed',
       time: "8:00",
       icon: 'person.svg',
       id: 3,
     ),
     ChatModel(
-      name: 'Sara',
+      name: "الأستاذ باسم",
       isGroup: false,
       currentMessage: 'call me in 2:00',
       time: "8:30",
@@ -46,6 +46,7 @@ class _LoginScreenState extends State<LoginScreen> {
       id: 4,
     ),
   ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -58,8 +59,8 @@ class _LoginScreenState extends State<LoginScreen> {
               context,
               MaterialPageRoute(
                 builder: (builder) => Homescreen(
-                  chatmodels:chatsModels,
-                  sourcechat:sourceChat ,
+                  chatmodels: chatsModels,
+                  sourcechat: sourceChat,
                 ),
               ),
             );

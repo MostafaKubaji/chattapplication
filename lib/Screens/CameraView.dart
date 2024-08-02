@@ -1,9 +1,11 @@
+
 import 'dart:io';
 import 'package:flutter/material.dart';
 
 class CameraViewPage extends StatelessWidget {
-  const CameraViewPage({super.key, this.path});
+  const CameraViewPage({super.key, this.path, this.onImageSend});
   final String? path;
+  final Function? onImageSend;
 
   @override
   Widget build(BuildContext context) {
@@ -83,12 +85,20 @@ class CameraViewPage extends StatelessWidget {
                       color: Colors.white,
                       fontSize: 18,
                     ),
-                    suffixIcon: CircleAvatar(
-                      radius: 28,
-                      backgroundColor: Color.fromARGB(255, 21, 97, 168), // تغيير لون الخلفية هنا
-                      child: Icon(
-                        Icons.check,
-                        color: Colors.white,
+                    suffixIcon: InkWell(
+                      onTap: () {
+                        if (onImageSend != null && path != null) {
+                          onImageSend!(path);
+                        }
+                      },
+                      child: CircleAvatar(
+                        radius: 28,
+                        backgroundColor: Color.fromARGB(
+                            255, 21, 97, 168), // تغيير لون الخلفية هنا
+                        child: Icon(
+                          Icons.check,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ),

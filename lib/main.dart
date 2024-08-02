@@ -1,8 +1,8 @@
 import 'package:camera/camera.dart';
-import 'package:chattapplication/Screens/CameraScreen.dart';
-import 'package:chattapplication/Screens/Homescreen.dart';
-import 'package:chattapplication/Screens/LoginScreen.dart';
+import 'package:chattapplication/NewScreen/LandingScreen.dart';
 import 'package:flutter/material.dart';
+
+List<CameraDescription>? cameras;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,12 +16,12 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       theme: ThemeData(
         fontFamily: "OpenSans",
-        primaryColor: Color(0xff002855), // تغيير اللون الأساسي
+        primaryColor: Color(0xff002855),
         appBarTheme: AppBarTheme(
-          color: Color(0xff023E7D), // تغيير لون شريط التطبيق
+          color: Color(0xff023E7D),
         ),
       ),
-      home: LoginScreen(),
+      home: LandingScreen(),
     );
   }
 }

@@ -6,8 +6,17 @@ import 'package:flutter/material.dart';
 
 List<CameraDescription>? cameras;
 
+Future<void> setupCameras() async {
+  try {
+    cameras = await availableCameras();
+  } on CameraException catch (e) {
+    print('Error: $e.code\nError Message: $e.message');
+  }
+}
+
 class CameraScreen extends StatefulWidget {
-  const CameraScreen({super.key});
+  const CameraScreen({super.key, this.onImageSend});
+  final Function? onImageSend;
 
   @override
   State<CameraScreen> createState() => _CameraScreenState();
@@ -23,9 +32,21 @@ class _CameraScreenState extends State<CameraScreen> {
   @override
   void initState() {
     super.initState();
+    initializeCamera();
+  }
+
+  Future<void> initializeCamera() async {
+    if (cameras == null || cameras!.isEmpty) {
+      await setupCameras();
+    }
     if (cameras != null && cameras!.isNotEmpty) {
       _cameraController = CameraController(cameras![0], ResolutionPreset.high);
       cameraValue = _cameraController!.initialize();
+      if (mounted) {
+        setState(() {});
+      }
+    } else {
+      print('No cameras found');
     }
   }
 
@@ -143,6 +164,7 @@ class _CameraScreenState extends State<CameraScreen> {
         MaterialPageRoute(
           builder: (builder) => CameraViewPage(
             path: imagePath,
+            onImageSend: widget.onImageSend,
           ),
         ),
       );

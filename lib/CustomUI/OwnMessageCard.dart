@@ -1,7 +1,11 @@
+
 import 'package:flutter/material.dart';
 
 class OwnMessageCard extends StatelessWidget {
-  const OwnMessageCard({super.key});
+  const OwnMessageCard({super.key, this.message, this.time, this.path});
+  final String? message;
+  final String? time;
+  final String? path; // إضافة المعامل هنا
 
   @override
   Widget build(BuildContext context) {
@@ -14,14 +18,16 @@ class OwnMessageCard extends StatelessWidget {
         child: Card(
           elevation: 1,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          color: Color(0xff1e6091), // لون خلفية البطاقة
+          color: Color(0xff1e6091),
           margin: EdgeInsets.symmetric(
             horizontal: 15,
             vertical: 5,
           ),
           child: Stack(
             children: [
+              
               Padding(
+                
                 padding: const EdgeInsets.only(
                   left: 10,
                   right: 60,
@@ -29,10 +35,10 @@ class OwnMessageCard extends StatelessWidget {
                   bottom: 20,
                 ),
                 child: Text(
-                  'Hey mostafa ajdskajsdl asjdlasjdl akldjsl kajdlkasj sdajd lkasj',
+                  message ?? '',
                   style: TextStyle(
                     fontSize: 16,
-                    color: Color(0xffFFFFFF), // لون النص
+                    color: Color(0xffFFFFFF),
                   ),
                 ),
               ),
@@ -42,10 +48,10 @@ class OwnMessageCard extends StatelessWidget {
                 child: Row(
                   children: [
                     Text(
-                      "20:58",
+                      time ?? '',
                       style: TextStyle(
                         fontSize: 13,
-                        color: Color.fromARGB(255, 162, 169, 188), // لون الوقت
+                        color: Color.fromARGB(255, 162, 169, 188),
                       ),
                     ),
                     SizedBox(
@@ -54,7 +60,7 @@ class OwnMessageCard extends StatelessWidget {
                     Icon(
                       Icons.done_all,
                       size: 20,
-                      color: Color.fromARGB(255, 139, 161, 204), // لون الأيقونة
+                      color: Color.fromARGB(255, 139, 161, 204),
                     ),
                   ],
                 ),
