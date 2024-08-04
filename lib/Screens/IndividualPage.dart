@@ -140,7 +140,7 @@ void sendMessage(String message, int? sourceId, int? targetId, String path) {
     try {
       print("Sending image at path: $path");
       var request = http.MultipartRequest("POST",
-          Uri.parse("https://chat-server-theta-five.vercel.app/api/addimage"));
+          Uri.parse("https://chat-server-omega-fawn.vercel.app"));
       request.files.add(await http.MultipartFile.fromPath('img', path));
       request.headers.addAll({
         "Content-type": "multipart/form-data",

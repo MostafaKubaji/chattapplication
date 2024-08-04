@@ -4,9 +4,9 @@ const socketIo = require("socket.io");
 const cors = require("cors");
 const routes = require("./routes");
 const winston = require('winston');
-
+//1
 const app = express();
-const port = process.env.PORT || 5000;
+const port = 5000 ||process.env.PORT ;
 const server = http.createServer(app);
 const io = socketIo(server);
 
@@ -69,7 +69,7 @@ io.on("connection", (socket) => {
 });
 
 app.route("/check").get((req, res) => {
-  return res.json("Your App is working fine");
+  return res.json("Your App is working fine 2");
 });
 
 // Add new endpoint to handle text messages
@@ -85,7 +85,7 @@ app.route("/sendmessage").post((req, res) => {
   }
 });
 
-server.listen(port, "0.0.0.0", () => {
+server.listen(port, () => {
   logger.info(`Server started on port ${port}`);
 });
 

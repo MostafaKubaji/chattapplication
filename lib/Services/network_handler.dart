@@ -5,7 +5,7 @@ class NetworkHandler {
     try {
       print("Attempting to connect to the server...");
       final response = await http.get(
-        Uri.parse("https://chat-server-theta-five.vercel.app/check"),
+        Uri.parse("https://chat-server-omega-fawn.vercel.app/check"),
       );
       print("Response status: ${response.statusCode}");
       print("Response body: ${response.body}");
