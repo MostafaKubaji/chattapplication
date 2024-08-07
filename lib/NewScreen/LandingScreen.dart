@@ -1,9 +1,6 @@
 import 'package:chattapplication/Screens/LoginScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:chattapplication/services/network_handler.dart';
-import 'dart:async';
-import 'dart:convert';
 
 class LandingScreen extends StatelessWidget {
   const LandingScreen({super.key});
@@ -46,7 +43,8 @@ class LandingScreen extends StatelessWidget {
                     children: [
                       TextSpan(
                         text: "Agree and Continue to accept the",
-                        style: TextStyle(color: Color(0xff7D8597)), // Text color
+                        style:
+                            TextStyle(color: Color(0xff7D8597)), // Text color
                       ),
                       TextSpan(
                         text: " RSA Terms of service and privacy policy",
@@ -62,44 +60,13 @@ class LandingScreen extends StatelessWidget {
               InkWell(
                 onTap: () async {
                   print("Button pressed");
-                  bool connectionSuccessful = await NetworkHandler.testConnection();
-                  print("Connection successful: $connectionSuccessful");
-                  
-                  // عرض Snackbar للإشارة إلى حالة الاتصال
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(connectionSuccessful 
-                          ? "Connection successful!" 
-                          : "Failed to connect to the server."),
-                      duration: Duration(seconds: 2),
-                    ),
+
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (builder) => LoginScreen()),
+                    (route) => false,
                   );
-                  
-                  if (connectionSuccessful) {
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(builder: (builder) => LoginScreen()),
-                      (route) => false,
-                    );
-                  } else {
-                    showDialog(
-                      context: context,
-                      builder: (BuildContext context) {
-                        return AlertDialog(
-                          title: Text("Connection Error"),
-                          content: Text("Failed to connect to the server. Please try again."),
-                          actions: <Widget>[
-                            TextButton(
-                              onPressed: () {
-                                Navigator.of(context).pop();
-                              },
-                              child: Text("OK"),
-                            ),
-                          ],
-                        );
-                      },
-                    );
-                  }
+                  // عرض Snackbar للإشارة إلى حالة الاتصال
                 },
                 child: Container(
                   width: MediaQuery.of(context).size.width - 110,

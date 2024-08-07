@@ -6,6 +6,7 @@ class CameraViewPage extends StatelessWidget {
   const CameraViewPage({super.key, this.path, this.onImageSend});
   final String? path;
   final Function? onImageSend;
+  static TextEditingController _controller=TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -69,6 +70,7 @@ class CameraViewPage extends StatelessWidget {
                 padding: EdgeInsets.symmetric(vertical: 5, horizontal: 8),
                 color: Colors.black38,
                 child: TextFormField(
+                  controller: _controller,
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 18,
@@ -88,7 +90,7 @@ class CameraViewPage extends StatelessWidget {
                     suffixIcon: InkWell(
                       onTap: () {
                         if (onImageSend != null && path != null) {
-                          onImageSend!(path);
+                          onImageSend!(path,_controller.text.trim());
                         }
                       },
                       child: CircleAvatar(

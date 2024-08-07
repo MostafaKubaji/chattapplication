@@ -33,7 +33,10 @@ class OwnFileCard extends StatelessWidget {
             ),
             child: Column(
               children: [
-                Image.file(File(path)),
+                Image.file(
+                  File(path),
+                  fit: BoxFit.fitHeight,
+                ),
                 Text(message),
                 Text(time),
               ],

@@ -1,5 +1,10 @@
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:chattapplication/CustomUI/OwnFileCard.dart';
+import 'package:chattapplication/CustomUI/ReplyFileCard.dart';
+import 'package:chattapplication/Screens/CameraScreen.dart';
+import 'package:chattapplication/Screens/CameraView.dart';
 import 'package:flutter/material.dart';
 import 'package:chattapplication/CustomUI/OwnMessageCard.dart';
 import 'package:chattapplication/CustomUI/ReplyMessageCard.dart';
@@ -12,8 +17,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:http/http.dart' as http;
 
-
-
 class IndividualPage extends StatefulWidget {
   const IndividualPage({super.key, this.chatModel, this.sourceChat});
   final ChatModel? chatModel;
@@ -24,15 +27,16 @@ class IndividualPage extends StatefulWidget {
 }
 
 class _IndividualPageState extends State<IndividualPage> {
-  bool showEmojiPicker = false;
-  FocusNode focusNode = FocusNode();
-  IO.Socket? socket;
   TextEditingController _controller = TextEditingController();
-  bool sendButton = false;
-  List<MessageModel> messages = [];
   ScrollController _scrollController = ScrollController();
   ImagePicker _picker = ImagePicker();
+  FocusNode focusNode = FocusNode();
+  List<MessageModel> messages = [];
+  bool showEmojiPicker = false;
+  bool sendButton = false;
+  IO.Socket? socket;
   XFile? file;
+  int popTime = 0;
 
   @override
   void initState() {
@@ -46,83 +50,77 @@ class _IndividualPageState extends State<IndividualPage> {
       }
     });
   }
-void connect() {
-  try {
-    socket = IO.io(
-        "https://chat-server-theta-five.vercel.app",
-        <String, dynamic>{
-          "transports": ["websocket"],
-          "autoConnect": false,
+
+  void connect() {
+    try {
+      socket = IO.io(
+          "http://192.168.1.2:5000", // تأكد من استخدام http:// أو https:// حسب الإعدادات في الخادم
+          <String, dynamic>{
+            "transports": ["websocket"],
+            "autoConnect": false,
+          });
+
+      socket?.connect();
+      socket?.onConnect((_) {
+        print("Connected to the server");
+        socket?.emit(
+            "signin", widget.sourceChat?.id); // Register client with server
+        socket?.on("message", (msg) {
+          print("New message: $msg");
+          if (msg["message"] != null) {
+            setMessage(
+              "destination",
+              msg["message"],
+              msg["path"],
+            );
+            _scrollController.animateTo(
+              _scrollController.position.maxScrollExtent,
+              duration: Duration(milliseconds: 300),
+              curve: Curves.easeOut,
+            );
+          } else {
+            print("Received message without content");
+          }
         });
-
-    socket?.connect();
-    socket?.onConnect((_) {
-      print("Connected to the server");
-      socket?.emit("signin", widget.sourceChat?.id); // Register client with server
-      socket?.on("message", (msg) {
-        print("New message: $msg");
-        if (msg["message"] != null) {
-          setMessage(
-            "destination",
-            msg["message"],
-            "",
-          );
-          _scrollController.animateTo(
-            _scrollController.position.maxScrollExtent,
-            duration: Duration(milliseconds: 300),
-            curve: Curves.easeOut,
-          );
-        } else {
-          print("Received message without content");
-        }
       });
-    });
 
-    socket?.onConnectError((data) {
-      print("Connection Error: $data");
-    });
+      socket?.onConnectError((data) {
+        print("Connection Error: $data");
+      });
 
-    socket?.onError((error) {
-      print("Error: $error");
-    });
+      socket?.onError((error) {
+        print("Error: $error");
+      });
 
-    socket?.onDisconnect((_) {
-      print("Disconnected from the server");
-    });
+      socket?.onDisconnect((_) {
+        print("Disconnected from the server");
+      });
 
-    print("Attempting to connect...");
-  } catch (e) {
-    print("Error during connection: $e");
-  }
-}
-
-
-
-
-
-void sendMessage(String message, int? sourceId, int? targetId, String path) {
-  if (sourceId == null || targetId == null || message.isEmpty) {
-    print("Error: sourceId, targetId, or message is null or empty");
-    return;
+      print("Attempting to connect...");
+    } catch (e) {
+      print("Error during connection: $e");
+    }
   }
 
-  print("Sending message from $sourceId to $targetId: $message");
+  void sendMessage(String message, int? sourceId, int? targetId, String path) {
+    if (sourceId == null || targetId == null || message.isEmpty) {
+      print("Error: sourceId, targetId, or message is null or empty");
+      return;
+    }
 
-  socket?.emit(
-    "message",
-    {
-      "message": message,
-      "sourceId": sourceId,
-      "targetId": targetId,
-      "path": path,
-    },
-  );
-  setMessage("source", message, path);
-}
+    print("Sending message from $sourceId to $targetId: $message");
 
-
-
-
+    socket?.emit(
+      "message",
+      {
+        "message": message,
+        "sourceId": sourceId,
+        "targetId": targetId,
+        "path": path,
+      },
+    );
+    setMessage("source", message, path);
+  }
 
   void setMessage(String type, String message, String path) {
     MessageModel messageModel = MessageModel(
@@ -136,18 +134,38 @@ void sendMessage(String message, int? sourceId, int? targetId, String path) {
     });
   }
 
-  void onImageSend(String path) async {
+  void onImageSend(String path, String message) async {
     try {
-      print("Sending image at path: $path");
-      var request = http.MultipartRequest("POST",
-          Uri.parse("https://chat-server-omega-fawn.vercel.app"));
+      print("Sending image at path: $message");
+      for (int i = 0; i < popTime; i++) {
+        Navigator.pop(context);
+      }
+      setState(() {
+        popTime = 0;
+      });
+
+      var request = http.MultipartRequest(
+          "POST", Uri.parse("https://192.168.1.2:5000/routes/addimage"));
       request.files.add(await http.MultipartFile.fromPath('img', path));
       request.headers.addAll({
         "Content-type": "multipart/form-data",
       });
       http.StreamedResponse response = await request.send();
+      var httpResponse = await http.Response.fromStream(response);
+      var data = json.decode(httpResponse.body);
+      print(data['path']);
       if (response.statusCode == 200) {
         print("Image uploaded successfully!");
+        setMessage("source", message, path);
+        socket?.emit(
+          "message",
+          {
+            "message": message,
+            "sourceId": widget.sourceChat?.id,
+            "targetId": widget.chatModel?.id,
+            "path": data['path'],
+          },
+        );
       } else {
         print("Failed to upload image. Status code: ${response.statusCode}");
       }
@@ -320,8 +338,48 @@ void sendMessage(String message, int? sourceId, int? targetId, String path) {
         child: Column(
           children: [
             Expanded(
-              child: buildMessagesList(),
+              // child: buildMessagesList(),
+                       
+              child: ListView.builder(
+                controller: _scrollController,
+                itemCount: messages.length + 1,
+                itemBuilder: (context, index) {
+                  if (index == messages.length) {
+                    return SizedBox(height: 70);
+                  }
+                  final message = messages[index];
+
+                  if (message.type == "source") {
+                    if (message.path != null && message.path!.isNotEmpty) {
+                      return OwnFileCard(
+                        path: message.path ?? '',
+                        message: message.message ?? '',
+                        time: message.time ?? '',
+                      );
+                    } else {
+                      return OwnMessageCard(
+                        message: message.message,
+                        time: message.time,
+                      );
+                    }
+                  } else {
+                    if (message.path != null && message.path!.isNotEmpty) {
+                      return ReplyFileCard(
+                        path: message.path ?? '',
+                        message: message.message ?? '',
+                        time: message.time ?? '',
+                      );
+                    } else {
+                      return ReplyMessageCard(
+                        message: message.message,
+                        time: message.time,
+                      );
+                    }
+                  }
+                },
+              ),
             ),
+            
             buildInputArea(),
           ],
         ),
@@ -329,30 +387,37 @@ void sendMessage(String message, int? sourceId, int? targetId, String path) {
     );
   }
 
-  Widget buildMessagesList() {
-    return ListView.builder(
-      controller: _scrollController,
-      itemCount: messages.length + 1,
-      itemBuilder: (context, index) {
-        if (index == messages.length) {
-          return SizedBox(height: 70);
-        }
-        if (messages[index].type == "source") {
-          return OwnMessageCard(
-            message: messages[index].message,
-            path: messages[index].path,
-            time: messages[index].time,
-          );
-        } else {
-          return ReplyMessageCard(
-            message: messages[index].message,
-            path: messages[index].path,
-            time: messages[index].time,
-          );
-        }
-      },
-    );
-  }
+  // Widget buildMessagesList() {
+  //   return ListView.builder(
+  //     controller: _scrollController,
+  //     itemCount: messages.length + 1,
+  //     itemBuilder: (context, index) {
+  //       if (index == messages.length) {
+  //         return SizedBox(height: 70);
+  //       }
+  //       if (messages[index].type == "source") {
+  //         if (messages[index].path != null) {
+  //           return OwnFileCard(
+  //             path: messages[index].path??'',
+  //             message: messages[index].message??'',
+  //             time: messages[index].time??'',
+  //           );
+  //         } else {
+  //           return OwnMessageCard(
+  //             message: messages[index].message,
+  //             time: messages[index].time,
+  //           );
+  //         }
+  //       } else {
+  //         return ReplyMessageCard(
+  //           message: messages[index].message,
+  //           path: messages[index].path,
+  //           time: messages[index].time,
+  //         );
+  //       }
+  //     },
+  //   );
+  // }
 
   Widget buildInputArea() {
     return Align(
@@ -452,10 +517,17 @@ void sendMessage(String message, int? sourceId, int? targetId, String path) {
         IconButton(
           icon: Icon(Icons.camera_alt),
           onPressed: () async {
-            file = await _picker.pickImage(source: ImageSource.camera);
-            if (file != null) {
-              onImageSend(file!.path);
-            }
+            setState(() {
+              popTime = 2;
+            });
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (builder) => CameraScreen(
+                  onImageSend: onImageSend,
+                ),
+              ),
+            );
           },
         ),
       ],
@@ -540,28 +612,49 @@ void sendMessage(String message, int? sourceId, int? targetId, String path) {
                     color: Colors.indigo,
                     label: "Document",
                   ),
+                  SizedBox(
+                    width: 40,
+                  ),
                   buildBottomSheetOption(
                     icon: Icons.camera_alt,
                     color: Colors.pink,
                     label: "Camera",
                     onPressed: () async {
-                      file = await _picker.pickImage(source: ImageSource.camera);
-                      if (file != null) {
-                        onImageSend(file!.path);
-                      }
-                      Navigator.pop(context);
+                      setState(() {
+                        popTime = 3;
+                      });
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (builder) => CameraScreen(
+                            onImageSend: onImageSend,
+                          ),
+                        ),
+                      );
                     },
+                  ),
+                  SizedBox(
+                    width: 40,
                   ),
                   buildBottomSheetOption(
                     icon: Icons.insert_photo,
                     color: Colors.purple,
                     label: "Gallery",
                     onPressed: () async {
-                      file = await _picker.pickImage(source: ImageSource.gallery);
-                      if (file != null) {
-                        onImageSend(file!.path);
-                      }
-                      Navigator.pop(context);
+                      setState(() {
+                        popTime = 2;
+                      });
+                      file =
+                          await _picker.pickImage(source: ImageSource.gallery);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (builder) => CameraViewPage(
+                            path: file!.path,
+                            onImageSend: onImageSend,
+                          ),
+                        ),
+                      );
                     },
                   ),
                 ],
@@ -574,10 +667,16 @@ void sendMessage(String message, int? sourceId, int? targetId, String path) {
                     color: Colors.orange,
                     label: "Audio",
                   ),
+                  SizedBox(
+                    width: 40,
+                  ),
                   buildBottomSheetOption(
                     icon: Icons.location_pin,
                     color: Colors.teal,
                     label: "Location",
+                  ),
+                  SizedBox(
+                    width: 40,
                   ),
                   buildBottomSheetOption(
                     icon: Icons.person,

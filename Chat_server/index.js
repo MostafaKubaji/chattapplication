@@ -1,94 +1,60 @@
 const express = require("express");
 const http = require("http");
-const socketIo = require("socket.io");
-const cors = require("cors");
-const routes = require("./routes");
-const winston = require('winston');
-//1
 const app = express();
-const port = 5000 ||process.env.PORT ;
+const port = process.env.PORT || 5000;
 const server = http.createServer(app);
-const io = socketIo(server);
-
-// إنشاء مثيل من Winston Logger
-const logger = winston.createLogger({
-  level: 'info',
-  format: winston.format.json(),
-  transports: [
-    new winston.transports.Console(), // تسجيل السجلات إلى وحدة التحكم
-    new winston.transports.File({ filename: 'combined.log' }) // تسجيل السجلات إلى ملف
-  ],
-});
+const io = require("socket.io")(server);
+const routes = require("./routes");
 
 // Middleware
-app.use(cors());
 app.use(express.json());
-app.use("/api", routes);
+app.use("/routes", routes); // استخدم مسار مناسب مثل /api بدلاً من /routes.js
 
-const clients = {};
-
-app.route("/clients").get((req, res) => {
-  logger.info(`Current clients: ${JSON.stringify(Object.keys(clients))}`);
-  return res.json({ clients: Object.keys(clients) });
-});
+const clients = {}; // Store connected clients
 
 io.on("connection", (socket) => {
-  logger.info(`A client connected: ${socket.id}`);
-  
+  console.log("A client connected: ", socket.id);
+
   // Handle signin event
   socket.on("signin", (id) => {
-    logger.info(`Signin message: ${id}`);
+    console.log("Signin message: ", id);
+    // Register client by their unique id
     clients[id] = socket;
-    logger.info(`Clients connected: ${Object.keys(clients)}`);
+    console.log("Clients connected:", Object.keys(clients));
   });
-  
+
   // Handle message event
   socket.on("message", (msg) => {
-    logger.info(`Received message: ${JSON.stringify(msg)}`);
-    const { targetId, message, sourceId } = msg;
-    
+    console.log("Received message:", msg);
+    const { targetId, message, sourceId } = msg; // Changed targetID to targetId
+
     if (clients[targetId]) {
+      // Send message to the target client
       clients[targetId].emit("message", { message, sourceId });
-      logger.info(`Message sent to client ${targetId}`);
+      
     } else {
-      logger.warn(`Client with ID ${targetId} not found`);
+      console.log(`Client with ID ${targetId} not found`);
     }
   });
-  
+
   // Handle disconnect event
   socket.on("disconnect", () => {
+    // Remove client from the clients list
     Object.keys(clients).forEach((id) => {
       if (clients[id] === socket) {
         delete clients[id];
-        logger.info(`Client with ID ${id} disconnected`);
+        console.log(`Client with ID ${id} disconnected`);
       }
     });
-    logger.info(`A client disconnected: ${socket.id}`);
-    logger.info(`Clients connected: ${Object.keys(clients)}`);
+    console.log("A client disconnected: ", socket.id);
+    console.log("Clients connected:", Object.keys(clients));
   });
 });
 
 app.route("/check").get((req, res) => {
-  return res.json("Your App is working fine 2");
+  return res.json("Your App is working fine");
 });
 
-// Add new endpoint to handle text messages
-app.route("/sendmessage").post((req, res) => {
-  const { targetId, message, sourceId } = req.body;
-  logger.info(`Received message: ${JSON.stringify({ targetId, message, sourceId })}`);
-  
-  if (clients[targetId]) {
-    clients[targetId].emit("message", { message, sourceId });
-    return res.json({ status: "Message sent" });
-  } else {
-    return res.status(404).json({ status: "Client not found" });
-  }
-});
-
-server.listen(port, () => {
-  logger.info(`Server started on port ${port}`);
-});
-
-app.route("/clients").get((req, res) => {
-  return res.json({ clients: Object.keys(clients) });
+server.listen(port, "0.0.0.0", () => {
+  console.log("Server started on port ", port);
 });

@@ -2,9 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:chattapplication/Model/ChatModel.dart';
 import 'package:chattapplication/Screens/IndividualPage.dart';
-import 'package:chattapplication/Services/network_handler.dart' as services_network_handler;
-import 'package:chattapplication/services/network_handler.dart' as other_network_handler;
-
 class Customcard extends StatelessWidget {
   const Customcard({super.key, required this.chatModel, this.sourcechat});
   final ChatModel chatModel;
@@ -14,17 +11,7 @@ class Customcard extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: () async {
-        // تحقق من الاتصال بالخادم
-        bool isConnected = await services_network_handler.NetworkHandler.testConnection(); // Use alias here
 
-        if (isConnected) {
-          // عرض رسالة نجاح عند الاتصال بالخادم
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Connected to the server'),
-              duration: Duration(seconds: 2),
-            ),
-          );
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -34,15 +21,6 @@ class Customcard extends StatelessWidget {
               ),
             ),
           );
-        } else {
-          // عرض رسالة فشل عند عدم الاتصال بالخادم
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Failed to connect to the server. Please try again later.'),
-              duration: Duration(seconds: 3),
-            ),
-          );
-        }
       },
       child: Column(
         children: [
