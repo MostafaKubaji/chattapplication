@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:chattapplication/CustomUI/OwnFileCard.dart';
 import 'package:chattapplication/CustomUI/ReplyFileCard.dart';
+import 'package:chattapplication/CustomUI/image_chat_card_widget.dart';
 import 'package:chattapplication/Screens/CameraScreen.dart';
 import 'package:chattapplication/Screens/CameraView.dart';
 import 'package:flutter/material.dart';
@@ -54,7 +55,7 @@ class _IndividualPageState extends State<IndividualPage> {
   void connect() {
     try {
       socket = IO.io(
-          "http://192.168.1.2:5000", // تأكد من استخدام http:// أو https:// حسب الإعدادات في الخادم
+          "http://192.168.57.106:5000", // تأكد من استخدام http:// أو https:// حسب الإعدادات في الخادم
           <String, dynamic>{
             "transports": ["websocket"],
             "autoConnect": false,
@@ -102,7 +103,7 @@ class _IndividualPageState extends State<IndividualPage> {
     }
   }
 
-  void sendMessage(String message, int? sourceId, int? targetId, String path) {
+  void sendMessage(String message, int? sourceId, int? targetId, String path,{bool isImage=false,String? imageData}) {
     if (sourceId == null || targetId == null || message.isEmpty) {
       print("Error: sourceId, targetId, or message is null or empty");
       return;
@@ -116,63 +117,86 @@ class _IndividualPageState extends State<IndividualPage> {
         "message": message,
         "sourceId": sourceId,
         "targetId": targetId,
+        "isImage":isImage,
         "path": path,
+        
       },
     );
-    setMessage("source", message, path);
+    setMessage("source", message, path,isImage: isImage);
   }
 
-  void setMessage(String type, String message, String path) {
+  void setMessage(String type, String message, String path,
+      {bool isImage = false}) {
     MessageModel messageModel = MessageModel(
       type: type,
       message: message,
       path: path,
-      time: DateTime.now().toString().substring(10, 16),
+      isImage: isImage,
+      time: DateTime.now().toIso8601String(),
     );
     setState(() {
       messages.add(messageModel);
     });
   }
 
-  void onImageSend(String path, String message) async {
-    try {
-      print("Sending image at path: $message");
-      for (int i = 0; i < popTime; i++) {
-        Navigator.pop(context);
-      }
-      setState(() {
-        popTime = 0;
-      });
+  void onSendImage(
+    String type,
+    File image,
+    String path,
+  ) async {
+  final imageBytes = await image.readAsBytes();
 
-      var request = http.MultipartRequest(
-          "POST", Uri.parse("https://192.168.1.2:5000/routes/addimage"));
-      request.files.add(await http.MultipartFile.fromPath('img', path));
-      request.headers.addAll({
-        "Content-type": "multipart/form-data",
-      });
-      http.StreamedResponse response = await request.send();
-      var httpResponse = await http.Response.fromStream(response);
-      var data = json.decode(httpResponse.body);
-      print(data['path']);
-      if (response.statusCode == 200) {
-        print("Image uploaded successfully!");
-        setMessage("source", message, path);
-        socket?.emit(
-          "message",
-          {
-            "message": message,
-            "sourceId": widget.sourceChat?.id,
-            "targetId": widget.chatModel?.id,
-            "path": data['path'],
-          },
-        );
-      } else {
-        print("Failed to upload image. Status code: ${response.statusCode}");
-      }
-    } catch (e) {
-      print("Error uploading image: $e");
-    }
+  final imageBase64String = base64Encode(imageBytes);
+
+   sendMessage(
+              imageBase64String,
+                widget.sourceChat?.id,
+                widget.chatModel?.id,
+                "",
+                isImage: true
+              );
   }
+
+  // void onImageSend(String path, String message) async {
+
+  // try {
+  //   print("Sending image at path: $message");
+  //   for (int i = 0; i < popTime; i++) {
+  //     Navigator.pop(context);
+  //   }
+  //   setState(() {
+  //     popTime = 0;
+  //   });
+
+  //   var request = http.MultipartRequest(
+  //       "POST", Uri.parse("https://192.168.1.2:5000/routes/addimage"));
+  //   request.files.add(await http.MultipartFile.fromPath('img', path));
+  //   request.headers.addAll({
+  //     "Content-type": "multipart/form-data",
+  //   });
+  //   http.StreamedResponse response = await request.send();
+  //   var httpResponse = await http.Response.fromStream(response);
+  //   var data = json.decode(httpResponse.body);
+  //   print(data['path']);
+  //   if (response.statusCode == 200) {
+  //     print("Image uploaded successfully!");
+  //     setMessage("source", message, path);
+  //     socket?.emit(
+  //       "message",
+  //       {
+  //         "message": message,
+  //         "sourceId": widget.sourceChat?.id,
+  //         "targetId": widget.chatModel?.id,
+  //         "path": data['path'],
+  //       },
+  //     );
+  //   } else {
+  //     print("Failed to upload image. Status code: ${response.statusCode}");
+  //   }
+  // } catch (e) {
+  //   print("Error uploading image: $e");
+  // }
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -339,7 +363,7 @@ class _IndividualPageState extends State<IndividualPage> {
           children: [
             Expanded(
               // child: buildMessagesList(),
-                       
+
               child: ListView.builder(
                 controller: _scrollController,
                 itemCount: messages.length + 1,
@@ -348,38 +372,42 @@ class _IndividualPageState extends State<IndividualPage> {
                     return SizedBox(height: 70);
                   }
                   final message = messages[index];
+                  if(message.isImage==true){
+                    return ImageChatWidget(data: message.message ?? '',
+                        message: message.message ?? '',
+                        time: message.time ?? '',);
+                  }else
 
                   if (message.type == "source") {
-                    if (message.path != null && message.path!.isNotEmpty) {
-                      return OwnFileCard(
-                        path: message.path ?? '',
-                        message: message.message ?? '',
-                        time: message.time ?? '',
-                      );
-                    } else {
+                    // if (message.path != null && message.path!.isNotEmpty) {
+                    //   return OwnFileCard(
+                    //     path: message.path ?? '',
+                    //     message: message.message ?? '',
+                    //     time: message.time ?? '',
+                    //   );
+                    // } else {
                       return OwnMessageCard(
                         message: message.message,
                         time: message.time,
                       );
-                    }
+                    // }
                   } else {
-                    if (message.path != null && message.path!.isNotEmpty) {
-                      return ReplyFileCard(
-                        path: message.path ?? '',
-                        message: message.message ?? '',
-                        time: message.time ?? '',
-                      );
-                    } else {
+                    // if (message.path != null && message.path!.isNotEmpty) {
+                    //   return ReplyFileCard(
+                    //     path: message.path ?? '',
+                    //     message: message.message ?? '',
+                    //     time: message.time ?? '',
+                    //   );
+                    // } else {
                       return ReplyMessageCard(
                         message: message.message,
                         time: message.time,
                       );
-                    }
+                    // }
                   }
                 },
               ),
             ),
-            
             buildInputArea(),
           ],
         ),
@@ -524,7 +552,7 @@ class _IndividualPageState extends State<IndividualPage> {
               context,
               MaterialPageRoute(
                 builder: (builder) => CameraScreen(
-                  onImageSend: onImageSend,
+                  onImageSend: onSendImage,
                 ),
               ),
             );
@@ -627,7 +655,7 @@ class _IndividualPageState extends State<IndividualPage> {
                         context,
                         MaterialPageRoute(
                           builder: (builder) => CameraScreen(
-                            onImageSend: onImageSend,
+                            onImageSend: onSendImage,
                           ),
                         ),
                       );
@@ -651,7 +679,7 @@ class _IndividualPageState extends State<IndividualPage> {
                         MaterialPageRoute(
                           builder: (builder) => CameraViewPage(
                             path: file!.path,
-                            onImageSend: onImageSend,
+                            onImageSend: onSendImage,
                           ),
                         ),
                       );

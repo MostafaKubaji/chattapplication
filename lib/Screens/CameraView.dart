@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 class CameraViewPage extends StatelessWidget {
   const CameraViewPage({super.key, this.path, this.onImageSend});
   final String? path;
-  final Function? onImageSend;
+  final  Function(String,File, String)? onImageSend;
   static TextEditingController _controller=TextEditingController();
 
   @override
@@ -90,7 +90,9 @@ class CameraViewPage extends StatelessWidget {
                     suffixIcon: InkWell(
                       onTap: () {
                         if (onImageSend != null && path != null) {
-                          onImageSend!(path,_controller.text.trim());
+                          onImageSend?.call("",File(path??""),_controller.text.trim());
+                          // onImageSend!(path,_controller.text.trim());
+                          Navigator.pop(context);
                         }
                       },
                       child: CircleAvatar(

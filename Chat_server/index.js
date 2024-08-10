@@ -26,11 +26,11 @@ io.on("connection", (socket) => {
   // Handle message event
   socket.on("message", (msg) => {
     console.log("Received message:", msg);
-    const { targetId, message, sourceId } = msg; // Changed targetID to targetId
+    const { targetId, message, sourceId ,isIamage} = msg; // Changed targetID to targetId
 
     if (clients[targetId]) {
       // Send message to the target client
-      clients[targetId].emit("message", { message, sourceId });
+      clients[targetId].emit("message", { message, sourceId ,isIamage});
       
     } else {
       console.log(`Client with ID ${targetId} not found`);

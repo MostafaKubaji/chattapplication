@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math';
 
 import 'package:camera/camera.dart';
@@ -16,7 +17,7 @@ Future<void> setupCameras() async {
 
 class CameraScreen extends StatefulWidget {
   const CameraScreen({super.key, this.onImageSend});
-  final Function? onImageSend;
+  final Function(String,File, String)? onImageSend;
 
   @override
   State<CameraScreen> createState() => _CameraScreenState();
@@ -167,7 +168,10 @@ class _CameraScreenState extends State<CameraScreen> {
             onImageSend: widget.onImageSend,
           ),
         ),
-      );
+      ).then((value) {
+                                  Navigator.pop(context);
+
+      },);
     }
   }
 }
