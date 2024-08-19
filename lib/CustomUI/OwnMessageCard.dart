@@ -1,11 +1,15 @@
-
 import 'package:flutter/material.dart';
 
 class OwnMessageCard extends StatelessWidget {
-  const OwnMessageCard({super.key, this.message, this.time, this.path});
+  const OwnMessageCard({super.key, this.message, this.time, this.path, this.key1});
+  
   final String? message;
   final String? time;
-  final String? path; // إضافة المعامل هنا
+  final String? path;
+  final String? key1;
+
+  // تغيير اسم الـ getter لتجنب التداخل
+  String get messageWithKey => 'Key is: $key1';
 
   @override
   Widget build(BuildContext context) {
@@ -21,13 +25,10 @@ class OwnMessageCard extends StatelessWidget {
           color: Color(0xff1e6091),
           margin: EdgeInsets.symmetric(
             horizontal: 15,
-            vertical: 5,
-          ),
+            vertical: 5),
           child: Stack(
             children: [
-              
               Padding(
-                
                 padding: const EdgeInsets.only(
                   left: 10,
                   right: 60,
@@ -35,7 +36,7 @@ class OwnMessageCard extends StatelessWidget {
                   bottom: 20,
                 ),
                 child: Text(
-                  message ?? '',
+                  message ?? '', // هنا استخدم message بدون تعارض
                   style: TextStyle(
                     fontSize: 16,
                     color: Color(0xffFFFFFF),

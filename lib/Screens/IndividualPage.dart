@@ -55,14 +55,14 @@ class _IndividualPageState extends State<IndividualPage> {
   void connect() {
     try {
       socket = IO.io(
-          "http://192.168.57.106:5000", // تأكد من استخدام http:// أو https:// حسب الإعدادات في الخادم
+          "http://192.168.1.119:5000", // تأكد من استخدام http:// أو https:// حسب الإعدادات في الخادم
           <String, dynamic>{
             "transports": ["websocket"],
             "autoConnect": false,
           });
 
       socket?.connect();
-      socket?.onConnect((_) {
+      socket?.onConnect((data) {
         print("Connected to the server");
         socket?.emit(
             "signin", widget.sourceChat?.id); // Register client with server
@@ -103,7 +103,8 @@ class _IndividualPageState extends State<IndividualPage> {
     }
   }
 
-  void sendMessage(String message, int? sourceId, int? targetId, String path,{bool isImage=false,String? imageData}) {
+  void sendMessage(String message, int? sourceId, int? targetId, String path,
+      {bool isImage = false, String? imageData}) {
     if (sourceId == null || targetId == null || message.isEmpty) {
       print("Error: sourceId, targetId, or message is null or empty");
       return;
@@ -117,22 +118,25 @@ class _IndividualPageState extends State<IndividualPage> {
         "message": message,
         "sourceId": sourceId,
         "targetId": targetId,
-        "isImage":isImage,
+        "isImage": isImage,
         "path": path,
-        
       },
     );
-    setMessage("source", message, path,isImage: isImage);
+    setMessage("source", message, path, isImage: isImage);
   }
 
-  void setMessage(String type, String message, String path,
-      {bool isImage = false}) {
+  void setMessage(
+    String type,
+    String message,
+    String path, {
+    bool isImage = false,
+  }) {
     MessageModel messageModel = MessageModel(
       type: type,
       message: message,
       path: path,
       isImage: isImage,
-      time: DateTime.now().toIso8601String(),
+      time: DateTime.now().toString().substring(10, 16),
     );
     setState(() {
       messages.add(messageModel);
@@ -144,59 +148,14 @@ class _IndividualPageState extends State<IndividualPage> {
     File image,
     String path,
   ) async {
-  final imageBytes = await image.readAsBytes();
+    final imageBytes = await image.readAsBytes();
 
-  final imageBase64String = base64Encode(imageBytes);
+    final imageBase64String = base64Encode(imageBytes);
 
-   sendMessage(
-              imageBase64String,
-                widget.sourceChat?.id,
-                widget.chatModel?.id,
-                "",
-                isImage: true
-              );
+    sendMessage(
+        imageBase64String, widget.sourceChat?.id, widget.chatModel?.id, "",
+        isImage: true);
   }
-
-  // void onImageSend(String path, String message) async {
-
-  // try {
-  //   print("Sending image at path: $message");
-  //   for (int i = 0; i < popTime; i++) {
-  //     Navigator.pop(context);
-  //   }
-  //   setState(() {
-  //     popTime = 0;
-  //   });
-
-  //   var request = http.MultipartRequest(
-  //       "POST", Uri.parse("https://192.168.1.2:5000/routes/addimage"));
-  //   request.files.add(await http.MultipartFile.fromPath('img', path));
-  //   request.headers.addAll({
-  //     "Content-type": "multipart/form-data",
-  //   });
-  //   http.StreamedResponse response = await request.send();
-  //   var httpResponse = await http.Response.fromStream(response);
-  //   var data = json.decode(httpResponse.body);
-  //   print(data['path']);
-  //   if (response.statusCode == 200) {
-  //     print("Image uploaded successfully!");
-  //     setMessage("source", message, path);
-  //     socket?.emit(
-  //       "message",
-  //       {
-  //         "message": message,
-  //         "sourceId": widget.sourceChat?.id,
-  //         "targetId": widget.chatModel?.id,
-  //         "path": data['path'],
-  //       },
-  //     );
-  //   } else {
-  //     print("Failed to upload image. Status code: ${response.statusCode}");
-  //   }
-  // } catch (e) {
-  //   print("Error uploading image: $e");
-  // }
-  // }
 
   @override
   Widget build(BuildContext context) {
@@ -372,38 +331,39 @@ class _IndividualPageState extends State<IndividualPage> {
                     return SizedBox(height: 70);
                   }
                   final message = messages[index];
-                  if(message.isImage==true){
-                    return ImageChatWidget(data: message.message ?? '',
+                  if (message.isImage == true) {
+                    return ImageChatWidget(
+                      data: message.message ?? '',
+                      message: message.message ?? '',
+                      time: message.time ?? '',
+                    );
+                  } else if (message.type == "source") {
+                    if (message.path != null && message.path!.isNotEmpty) {
+                      return OwnFileCard(
+                        path: message.path ?? '',
                         message: message.message ?? '',
-                        time: message.time ?? '',);
-                  }else
-
-                  if (message.type == "source") {
-                    // if (message.path != null && message.path!.isNotEmpty) {
-                    //   return OwnFileCard(
-                    //     path: message.path ?? '',
-                    //     message: message.message ?? '',
-                    //     time: message.time ?? '',
-                    //   );
-                    // } else {
+                        time: message.time ?? '',
+                      );
+                    } else {
                       return OwnMessageCard(
                         message: message.message,
                         time: message.time,
                       );
-                    // }
+                    }
                   } else {
-                    // if (message.path != null && message.path!.isNotEmpty) {
-                    //   return ReplyFileCard(
-                    //     path: message.path ?? '',
-                    //     message: message.message ?? '',
-                    //     time: message.time ?? '',
-                    //   );
-                    // } else {
+                    if (message.path != null && message.path!.isNotEmpty) {
+                      return ReplyFileCard(
+                        path: message.path ?? '',
+                        message: message.message ?? '',
+                        time: message.time ?? '',
+                      );
+                    } else {
                       return ReplyMessageCard(
                         message: message.message,
                         time: message.time,
+                        path: message.path,
                       );
-                    // }
+                    }
                   }
                 },
               ),
@@ -415,48 +375,19 @@ class _IndividualPageState extends State<IndividualPage> {
     );
   }
 
-  // Widget buildMessagesList() {
-  //   return ListView.builder(
-  //     controller: _scrollController,
-  //     itemCount: messages.length + 1,
-  //     itemBuilder: (context, index) {
-  //       if (index == messages.length) {
-  //         return SizedBox(height: 70);
-  //       }
-  //       if (messages[index].type == "source") {
-  //         if (messages[index].path != null) {
-  //           return OwnFileCard(
-  //             path: messages[index].path??'',
-  //             message: messages[index].message??'',
-  //             time: messages[index].time??'',
-  //           );
-  //         } else {
-  //           return OwnMessageCard(
-  //             message: messages[index].message,
-  //             time: messages[index].time,
-  //           );
-  //         }
-  //       } else {
-  //         return ReplyMessageCard(
-  //           message: messages[index].message,
-  //           path: messages[index].path,
-  //           time: messages[index].time,
-  //         );
-  //       }
-  //     },
-  //   );
-  // }
-
   Widget buildInputArea() {
     return Align(
       alignment: Alignment.bottomCenter,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          buildImagePreview(),
-          buildMessageInput(),
-          buildEmojiPicker(),
-        ],
+      child: Container(
+        height: 70,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            buildImagePreview(),
+            buildMessageInput(),
+            buildEmojiPicker(),
+          ],
+        ),
       ),
     );
   }
@@ -579,6 +510,11 @@ class _IndividualPageState extends State<IndividualPage> {
           ),
           onPressed: () {
             if (sendButton) {
+              _scrollController.animateTo(
+                _scrollController.position.maxScrollExtent,
+                duration: Duration(milliseconds: 300),
+                curve: Curves.easeOut,
+              );
               sendMessage(
                 _controller.text.trim(),
                 widget.sourceChat?.id,

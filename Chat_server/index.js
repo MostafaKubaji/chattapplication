@@ -1,60 +1,109 @@
+const mongoose = require("mongoose");
 const express = require("express");
 const http = require("http");
 const app = express();
 const port = process.env.PORT || 5000;
 const server = http.createServer(app);
 const io = require("socket.io")(server);
-const routes = require("./routes");
+const Message = require('./models/Message');
+const cors = require('cors');
+const Conversation = require('./models/Conversation');
+
+// الاتصال بقاعدة البيانات
+mongoose.connect("mongodb://192.168.1.119:27017/mydb", {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+})
+    .then(() => console.log("Connected to MongoDB"))
+    .catch((err) => console.error("Could not connect to MongoDB", err));
 
 // Middleware
 app.use(express.json());
-app.use("/routes", routes); // استخدم مسار مناسب مثل /api بدلاً من /routes.js
+app.use(cors());
 
-const clients = {}; // Store connected clients
+const clients = {}; // تخزين العملاء المتصلين
 
 io.on("connection", (socket) => {
-  console.log("A client connected: ", socket.id);
+    console.log("A client connected: ", socket.id);
 
-  // Handle signin event
-  socket.on("signin", (id) => {
-    console.log("Signin message: ", id);
-    // Register client by their unique id
-    clients[id] = socket;
-    console.log("Clients connected:", Object.keys(clients));
-  });
-
-  // Handle message event
-  socket.on("message", (msg) => {
-    console.log("Received message:", msg);
-    const { targetId, message, sourceId ,isIamage} = msg; // Changed targetID to targetId
-
-    if (clients[targetId]) {
-      // Send message to the target client
-      clients[targetId].emit("message", { message, sourceId ,isIamage});
-      
-    } else {
-      console.log(`Client with ID ${targetId} not found`);
-    }
-  });
-
-  // Handle disconnect event
-  socket.on("disconnect", () => {
-    // Remove client from the clients list
-    Object.keys(clients).forEach((id) => {
-      if (clients[id] === socket) {
-        delete clients[id];
-        console.log(`Client with ID ${id} disconnected`);
-      }
+    // استقبال حدث تسجيل الدخول وتخزين الـ socket الخاص بالمستخدم
+    socket.on("signin", (id) => {
+        clients[id] = socket;
+        console.log("Clients connected:", Object.keys(clients));
     });
-    console.log("A client disconnected: ", socket.id);
-    console.log("Clients connected:", Object.keys(clients));
-  });
-});
 
-app.route("/check").get((req, res) => {
-  return res.json("Your App is working fine");
+    // استقبال حدث إرسال رسالة
+    socket.on("message", async (msg) => {
+        console.log("Received message:", msg);
+        const { targetId, message, sourceId, isImage } = msg;
+
+        try {
+            // تحويل sourceId و targetId إلى ObjectId بشكل صحيح
+            const sourceObjectId = new mongoose.Types.ObjectId(sourceId);
+            const targetObjectId = new mongoose.Types.ObjectId(targetId);
+
+            // البحث عن المحادثة الموجودة بين المستخدمين
+            let conversation = await Conversation.findOne({
+                participants: { $all: [sourceObjectId, targetObjectId] }
+            });
+
+            // إنشاء محادثة جديدة إذا لم تكن موجودة
+            if (!conversation) {
+                conversation = new Conversation({
+                    participants: [sourceObjectId, targetObjectId],
+                    messages: [],
+                });
+            }
+
+            // إنشاء الرسالة الجديدة
+            const newMessage = new Message({
+                sourceId: sourceObjectId,
+                targetId: targetObjectId,
+                message,
+                isImage,
+            });
+
+            // حفظ الرسالة في قاعدة البيانات
+            await newMessage.save();
+
+            // إضافة الرسالة إلى المحادثة وتحديث تاريخ آخر رسالة
+            conversation.messages.push(newMessage._id);
+            conversation.lastMessageAt = new Date();
+            await conversation.save();
+
+            console.log("Message saved:", message);
+
+            // إرسال الرسالة إلى المستخدم المستهدف إذا كان متصلاً
+            if (clients[targetId]) {
+                clients[targetId].emit("message", {
+                    _id: newMessage._id, // أضف المعرف الجديد للرسالة
+                    message: newMessage.message,
+                    sourceId: newMessage.sourceId,
+                    isImage: newMessage.isImage,
+                    createdAt: newMessage.createdAt // أضف تاريخ الإنشاء إذا كان مطلوبًا
+                });
+                console.log(`Message sent to user ${targetId} with socket ID: ${clients[targetId].id}`);
+            } else {
+                console.log(`Target client ${targetId} is not connected.`);
+            }
+        } catch (error) {
+            console.error("Error handling message:", error);
+        }
+    });
+
+    // استقبال حدث انقطاع الاتصال
+    socket.on("disconnect", () => {
+        for (const id in clients) {
+            if (clients[id] === socket) {
+                delete clients[id];
+                console.log(`Client with ID ${id} disconnected`);
+                break;
+            }
+        }
+        console.log("A client disconnected:", socket.id);
+    });
 });
 
 server.listen(port, "0.0.0.0", () => {
-  console.log("Server started on port ", port);
+    console.log("Server started on port", port);
 });

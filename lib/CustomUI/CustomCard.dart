@@ -18,6 +18,7 @@ class Customcard extends StatelessWidget {
               builder: (context) => IndividualPage(
                 chatModel: chatModel,
                 sourceChat: sourcechat,
+            
               ),
             ),
           );
