@@ -10,7 +10,7 @@ const cors = require('cors');
 const Conversation = require('./models/Conversation');
 
 // الاتصال بقاعدة البيانات
-mongoose.connect("mongodb://192.168.1.119:27017/mydb", {
+mongoose.connect("mongodb://192.168.137.3:27017/mydb", {
     useNewUrlParser: true,
     useUnifiedTopology: true,
 })

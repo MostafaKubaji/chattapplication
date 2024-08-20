@@ -55,7 +55,7 @@ class _IndividualPageState extends State<IndividualPage> {
   void connect() {
     try {
       socket = IO.io(
-          "http://192.168.1.119:5000", // تأكد من استخدام http:// أو https:// حسب الإعدادات في الخادم
+          "http://192.168.137.3:5000", // تأكد من استخدام http:// أو https:// حسب الإعدادات في الخادم
           <String, dynamic>{
             "transports": ["websocket"],
             "autoConnect": false,
@@ -129,7 +129,7 @@ class _IndividualPageState extends State<IndividualPage> {
     String type,
     String message,
     String path, {
-    bool isImage = false,
+    bool? isImage = false,
   }) {
     MessageModel messageModel = MessageModel(
       type: type,
