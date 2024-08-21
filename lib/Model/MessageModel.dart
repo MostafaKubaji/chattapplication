@@ -6,5 +6,6 @@ String? message;
 String? time;
 String? path;
 bool? isImage;
-MessageModel({this.message,this.type,this.time,@required this.path,this.isImage});
+bool? isFile;
+MessageModel({this.message,this.type,this.time,@required this.path,this.isImage,this.isFile});
 }
