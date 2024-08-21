@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 //2
+import 'package:chattapplication/CustomUI/FileDisplayWidget.dart';
 import 'package:chattapplication/CustomUI/OwnFileCard.dart';
 import 'package:chattapplication/CustomUI/ReplyFileCard.dart';
 import 'package:chattapplication/CustomUI/image_chat_card_widget.dart';
+import 'package:chattapplication/CustomUI/FileChatWidget.dart';
 import 'package:chattapplication/Screens/CameraScreen.dart';
 import 'package:chattapplication/Screens/CameraView.dart';
 import 'package:flutter/material.dart';
@@ -17,6 +19,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:http/http.dart' as http;
+import 'package:file_picker/file_picker.dart';
 
 class IndividualPage extends StatefulWidget {
   const IndividualPage({super.key, this.chatModel, this.sourceChat});
@@ -54,12 +57,10 @@ class _IndividualPageState extends State<IndividualPage> {
 
   void connect() {
     try {
-      socket = IO.io(
-          "http://192.168.137.3:5000", // تأكد من استخدام http:// أو https:// حسب الإعدادات في الخادم
-          <String, dynamic>{
-            "transports": ["websocket"],
-            "autoConnect": false,
-          });
+      socket = IO.io("http://192.168.1.119:5000", <String, dynamic>{
+        "transports": ["websocket"],
+        "autoConnect": false,
+      });
 
       socket?.connect();
       socket?.onConnect((data) {
@@ -69,11 +70,21 @@ class _IndividualPageState extends State<IndividualPage> {
         socket?.on("message", (msg) {
           print("New message: $msg");
           if (msg["message"] != null) {
-            setMessage(
-              "destination",
-              msg["message"],
-              msg["path"],
-            );
+            if (msg["isImage"] == true) {
+              // هنا قم بتحويل النص إلى صورة
+              setMessage(
+                "destination",
+                msg["message"],
+                msg["path"] ?? '',
+                isImage: true,
+              );
+            } else {
+              setMessage(
+                "destination",
+                msg["message"],
+                msg["path"] ?? '',
+              );
+            }
             _scrollController.animateTo(
               _scrollController.position.maxScrollExtent,
               duration: Duration(milliseconds: 300),
@@ -104,7 +115,7 @@ class _IndividualPageState extends State<IndividualPage> {
   }
 
   void sendMessage(String message, int? sourceId, int? targetId, String path,
-      {bool isImage = false, String? imageData}) {
+      {bool isImage = false, bool isFile = false}) {
     if (sourceId == null || targetId == null || message.isEmpty) {
       print("Error: sourceId, targetId, or message is null or empty");
       return;
@@ -119,23 +130,21 @@ class _IndividualPageState extends State<IndividualPage> {
         "sourceId": sourceId,
         "targetId": targetId,
         "isImage": isImage,
+        "isFile": isFile,
         "path": path,
       },
     );
-    setMessage("source", message, path, isImage: isImage);
+    setMessage("source", message, path, isImage: isImage, isFile: isFile);
   }
 
-  void setMessage(
-    String type,
-    String message,
-    String path, {
-    bool? isImage = false,
-  }) {
+  void setMessage(String type, String message, String path,
+      {bool? isImage = false, bool? isFile = false}) {
     MessageModel messageModel = MessageModel(
       type: type,
       message: message,
       path: path,
       isImage: isImage,
+      isFile: isFile,
       time: DateTime.now().toString().substring(10, 16),
     );
     setState(() {
@@ -331,7 +340,13 @@ class _IndividualPageState extends State<IndividualPage> {
                     return SizedBox(height: 70);
                   }
                   final message = messages[index];
-                  if (message.isImage == true) {
+                  if (message.isFile == true) {
+                    return FileDisplayWidget(
+                      filePath: message.path ?? '',
+                      message: message.message ?? '',
+                      time: message.time ?? '',
+                    );
+                  } else if (message.isImage == true) {
                     return ImageChatWidget(
                       data: message.message ?? '',
                       message: message.message ?? '',
@@ -575,6 +590,40 @@ class _IndividualPageState extends State<IndividualPage> {
                     icon: Icons.insert_drive_file,
                     color: Colors.indigo,
                     label: "Document",
+                    onPressed: () async {
+                      // فتح مستعرض الملفات لاختيار ملف
+                      FilePickerResult? result =
+                          await FilePicker.platform.pickFiles();
+                      if (result != null) {
+                        File file = File(result.files.single.path!);
+                        List<int> fileBytes = await file.readAsBytes();
+                        String base64String = base64Encode(fileBytes);
+
+                        // بدلاً من إرسال الملف مباشرة عبر الـ socket هنا،
+                        // نقوم بإرسال الملف إلى FileChatWidget لمعالجته
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => FileChatWidget(
+                              onFileSend: (base64String, fileName, filePath) {
+                                // هنا يمكنك معالجة الملف بعد إرساله من FileChatWidget
+                                sendMessage(
+                                  base64String,
+                                  widget.sourceChat?.id,
+                                  widget.chatModel?.id,
+                                  filePath,
+                                  isImage: false,
+                                  isFile:
+                                      true, // تعيين isFile كـ true إذا كان ملف
+                                );
+                              },
+                            ),
+                          ),
+                        );
+                      }
+                      Navigator.pop(
+                          context); // إغلاق الـ BottomSheet بعد اختيار الملف
+                    },
                   ),
                   SizedBox(
                     width: 40,
