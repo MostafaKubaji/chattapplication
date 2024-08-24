@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-class FileDisplayWidget extends StatelessWidget {
+class OwnFileDisplay extends StatelessWidget {
   final String filePath;
   final String message;
   final String time;
 
-  const FileDisplayWidget({
+  const OwnFileDisplay({
     Key? key,
     required this.filePath,
     required this.message,

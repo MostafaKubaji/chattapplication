@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-class ReplyFileCard extends StatelessWidget {
-  const ReplyFileCard({
+class ReplyImageCard extends StatelessWidget {
+  const ReplyImageCard({
     super.key,
     required this.path,
     required this.message,

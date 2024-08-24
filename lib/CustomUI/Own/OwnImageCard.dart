@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 
-class OwnFileCard extends StatelessWidget {
-  const OwnFileCard({
+class OwnImageCard extends StatelessWidget {
+  const OwnImageCard({
     super.key,
     required this.path,
     required this.message,

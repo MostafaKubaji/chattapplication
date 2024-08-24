@@ -1,16 +1,16 @@
 import 'dart:convert';
 import 'dart:io';
 //111111
-import 'package:chattapplication/CustomUI/FileDisplayWidget.dart';
-import 'package:chattapplication/CustomUI/OwnFileCard.dart';
-import 'package:chattapplication/CustomUI/ReplyFileCard.dart';
+import 'package:chattapplication/CustomUI/Reply/ReplyFileDisplay.dart';
+import 'package:chattapplication/CustomUI/Own/OwnImageCard.dart';
+import 'package:chattapplication/CustomUI/Reply/ReplyImageCard.dart';
+import 'package:chattapplication/CustomUI/Reply/ReplyMessageCard.dart';
 import 'package:chattapplication/CustomUI/image_chat_card_widget.dart';
 import 'package:chattapplication/CustomUI/FileChatWidget.dart';
 import 'package:chattapplication/Screens/CameraScreen.dart';
 import 'package:chattapplication/Screens/CameraView.dart';
 import 'package:flutter/material.dart';
-import 'package:chattapplication/CustomUI/OwnMessageCard.dart';
-import 'package:chattapplication/CustomUI/ReplyMessageCard.dart';
+import 'package:chattapplication/CustomUI/Own/OwnMessageCard.dart';
 import 'package:chattapplication/Model/MessageModel.dart';
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:flutter/cupertino.dart';
@@ -20,6 +20,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:http/http.dart' as http;
 import 'package:file_picker/file_picker.dart';
+import 'package:chattapplication/CustomUI/FileChatWidget.dart' as chat;
+import 'package:chattapplication/CustomUI/Reply/ReplyFileDisplay.dart'
+    as display;
+import 'package:encrypt/encrypt.dart' as encrypt;
 
 class IndividualPage extends StatefulWidget {
   const IndividualPage({super.key, this.chatModel, this.sourceChat});
@@ -42,6 +46,32 @@ class _IndividualPageState extends State<IndividualPage> {
   XFile? file;
   int popTime = 0;
 
+  // مفتاح التشفير بطول 128 بت (16 بايت)
+  final key = encrypt.Key.fromUtf8('my16byteskey1234'); // 16 بايت
+  final iv = encrypt.IV.fromLength(16); // Initialization Vector
+
+  // دالة التشفير مع حفظ الـ IV مع الرسالة
+  String encryptMessage(String plainText) {
+    final encrypter = encrypt.Encrypter(encrypt.AES(key));
+    final encrypted = encrypter.encrypt(plainText, iv: iv);
+    return '${encrypted.base16}:${iv.base16}'; // حفظ الرسالة المشفرة مع الـ IV
+  }
+
+  // دالة فك التشفير باستخدام الـ IV المحفوظ مع الرسالة
+  String decryptMessage(String encryptedTextWithIv) {
+    final parts = encryptedTextWithIv.split(':');
+    if (parts.length != 2) {
+      throw ArgumentError('Invalid encrypted text format');
+    }
+    final encryptedText = parts[0];
+    final iv = encrypt.IV.fromBase16(parts[1]);
+
+    final encrypter = encrypt.Encrypter(encrypt.AES(key));
+    final decrypted =
+        encrypter.decrypt(encrypt.Encrypted.fromBase16(encryptedText), iv: iv);
+    return decrypted;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -55,87 +85,91 @@ class _IndividualPageState extends State<IndividualPage> {
     });
   }
 
-  void connect() {
-    try {
-      socket = IO.io("http://192.168.1.119:5000", <String, dynamic>{
-        "transports": ["websocket"],
-        "autoConnect": false,
-      });
 
-      socket?.connect();
-      socket?.onConnect((data) {
-        print("Connected to the server");
-        socket?.emit(
-            "signin", widget.sourceChat?.id); // Register client with server
-        socket?.on("message", (msg) {
-          print("New message: $msg");
-          if (msg["message"] != null) {
-            if (msg["isImage"] == true) {
-              // هنا قم بتحويل النص إلى صورة
-              setMessage(
-                "destination",
-                msg["message"],
-                msg["path"] ?? '',
-                isImage: true,
-              );
-            } else {
-              setMessage(
-                "destination",
-                msg["message"],
-                msg["path"] ?? '',
-              );
-            }
-            _scrollController.animateTo(
-              _scrollController.position.maxScrollExtent,
-              duration: Duration(milliseconds: 300),
-              curve: Curves.easeOut,
-            );
-          } else {
-            print("Received message without content");
-          }
-        });
-      });
+void connect() {
+  try {
+    socket = IO.io("http://192.168.1.119:5000", <String, dynamic>{
+      "transports": ["websocket"],
+      "autoConnect": false,
+    });
 
-      socket?.onConnectError((data) {
-        print("Connection Error: $data");
-      });
+    socket?.connect();
+    socket?.onConnect((data) {
+      print("Connected to the server");
+      socket?.emit("signin", widget.sourceChat?.id);
+      
+      // التأكد من عدم تكرار المستمع
+      socket?.off("message"); 
 
-      socket?.onError((error) {
-        print("Error: $error");
+      socket?.on("message", (msg) {
+        print("New message received: ${msg["message"]}");
+        if (msg["message"] != null) {
+          String decryptedMessage = decryptMessage(msg["message"]);
+          print("Decrypted message: $decryptedMessage");
+          setMessage(
+            "destination",
+            decryptedMessage,
+            msg["path"] ?? '',
+            isImage: msg["isImage"] == true,
+            isFile: msg["isFile"] == true,
+          );
+          _scrollController.animateTo(
+            _scrollController.position.maxScrollExtent,
+            duration: Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          );
+        } else {
+          print("Received message without content");
+        }
       });
+    });
 
-      socket?.onDisconnect((_) {
-        print("Disconnected from the server");
-      });
+    socket?.onConnectError((data) {
+      print("Connection Error: $data");
+    });
 
-      print("Attempting to connect...");
-    } catch (e) {
-      print("Error during connection: $e");
-    }
+    socket?.onError((error) {
+      print("Error: $error");
+    });
+
+    socket?.onDisconnect((_) {
+      print("Disconnected from the server");
+    });
+
+    print("Attempting to connect...");
+  } catch (e) {
+    print("Error during connection: $e");
+  }
+}
+
+void sendMessage(String message, int? sourceId, int? targetId, String path,
+    {bool isImage = false, bool isFile = false}) {
+  if (sourceId == null || targetId == null || message.isEmpty) {
+    print("Error: sourceId, targetId, or message is null or empty");
+    return;
   }
 
-  void sendMessage(String message, int? sourceId, int? targetId, String path,
-      {bool isImage = false, bool isFile = false}) {
-    if (sourceId == null || targetId == null || message.isEmpty) {
-      print("Error: sourceId, targetId, or message is null or empty");
-      return;
-    }
+  // تشفير الرسالة قبل الإرسال
+  String encryptedMessage = encryptMessage(message);
 
-    print("Sending message from $sourceId to $targetId: $message");
+  print("Sending message from $sourceId to $targetId: $encryptedMessage");
 
-    socket?.emit(
-      "message",
-      {
-        "message": message,
-        "sourceId": sourceId,
-        "targetId": targetId,
-        "isImage": isImage,
-        "isFile": isFile,
-        "path": path,
-      },
-    );
-    setMessage("source", message, path, isImage: isImage, isFile: isFile);
-  }
+  socket?.emit(
+    "message",
+    {
+      "message": encryptedMessage, // إرسال الرسالة المشفرة
+      "sourceId": sourceId,
+      "targetId": targetId,
+      "isImage": isImage,
+      "isFile": isFile,
+      "path": path,
+    },
+  );
+
+  // إضافة الرسالة غير المشفرة إلى القائمة عند المرسل
+  setMessage("source", message, path, isImage: isImage, isFile: isFile);
+  print("Message sent and added to source list: $message");
+}
 
   void setMessage(String type, String message, String path,
       {bool? isImage = false, bool? isFile = false}) {
@@ -330,59 +364,74 @@ class _IndividualPageState extends State<IndividualPage> {
         child: Column(
           children: [
             Expanded(
-              // child: buildMessagesList(),
+                // child: buildMessagesList(),
 
-              child: ListView.builder(
-                controller: _scrollController,
-                itemCount: messages.length + 1,
-                itemBuilder: (context, index) {
-                  if (index == messages.length) {
-                    return SizedBox(height: 70);
+                child: ListView.builder(
+              controller: _scrollController,
+              itemCount: messages.length + 1,
+              itemBuilder: (context, index) {
+                if (index == messages.length) {
+                  return SizedBox(height: 70);
+                }
+                final message = messages[index];
+
+                String getFileType(String? path) {
+                  if (path == null || path.isEmpty) return 'unknown';
+                  final extension = path.split('.').last.toLowerCase();
+                  switch (extension) {
+                    case 'pdf':
+                      return 'pdf';
+                    case 'doc':
+                    case 'docx':
+                      return 'doc';
+                    default:
+                      return 'unknown';
                   }
-                  final message = messages[index];
-                  if (message.isFile == true) {
-                    return FileDisplayWidget(
-                      filePath: message.path ?? '',
+                }
+
+                if (message.isFile == true) {
+                  return ReplyFileDisplay(
+                    filePath: message.path ?? '',
+                    message: message.message ?? '',
+                    time: message.time ?? '',
+                    fileType: getFileType(message.path),
+                  );
+                } else if (message.isImage == true) {
+                  return ImageChatWidget(
+                    data: message.message ?? '',
+                    message: message.message ?? '',
+                    time: message.time ?? '',
+                  );
+                } else if (message.type == "source") {
+                  if (message.path != null && message.path!.isNotEmpty) {
+                    return OwnImageCard(
+                      path: message.path ?? '',
                       message: message.message ?? '',
                       time: message.time ?? '',
                     );
-                  } else if (message.isImage == true) {
-                    return ImageChatWidget(
-                      data: message.message ?? '',
-                      message: message.message ?? '',
-                      time: message.time ?? '',
-                    );
-                  } else if (message.type == "source") {
-                    if (message.path != null && message.path!.isNotEmpty) {
-                      return OwnFileCard(
-                        path: message.path ?? '',
-                        message: message.message ?? '',
-                        time: message.time ?? '',
-                      );
-                    } else {
-                      return OwnMessageCard(
-                        message: message.message,
-                        time: message.time,
-                      );
-                    }
                   } else {
-                    if (message.path != null && message.path!.isNotEmpty) {
-                      return ReplyFileCard(
-                        path: message.path ?? '',
-                        message: message.message ?? '',
-                        time: message.time ?? '',
-                      );
-                    } else {
-                      return ReplyMessageCard(
-                        message: message.message,
-                        time: message.time,
-                        path: message.path,
-                      );
-                    }
+                    return OwnMessageCard(
+                      message: message.message,
+                      time: message.time,
+                    );
                   }
-                },
-              ),
-            ),
+                } else {
+                  if (message.path != null && message.path!.isNotEmpty) {
+                    return ReplyImageCard(
+                      path: message.path ?? '',
+                      message: message.message ?? '',
+                      time: message.time ?? '',
+                    );
+                  } else {
+                    return ReplyMessageCard(
+                      message: message.message,
+                      time: message.time,
+                      path: message.path,
+                    );
+                  }
+                }
+              },
+            )),
             buildInputArea(),
           ],
         ),
@@ -591,38 +640,24 @@ class _IndividualPageState extends State<IndividualPage> {
                     color: Colors.indigo,
                     label: "Document",
                     onPressed: () async {
-                      // فتح مستعرض الملفات لاختيار ملف
-                      FilePickerResult? result =
-                          await FilePicker.platform.pickFiles();
-                      if (result != null) {
-                        File file = File(result.files.single.path!);
-                        List<int> fileBytes = await file.readAsBytes();
-                        String base64String = base64Encode(fileBytes);
-
-                        // بدلاً من إرسال الملف مباشرة عبر الـ socket هنا،
-                        // نقوم بإرسال الملف إلى FileChatWidget لمعالجته
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => FileChatWidget(
-                              onFileSend: (base64String, fileName, filePath) {
-                                // هنا يمكنك معالجة الملف بعد إرساله من FileChatWidget
-                                sendMessage(
-                                  base64String,
-                                  widget.sourceChat?.id,
-                                  widget.chatModel?.id,
-                                  filePath,
-                                  isImage: false,
-                                  isFile:
-                                      true, // تعيين isFile كـ true إذا كان ملف
-                                );
-                              },
-                            ),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => FileChatWidget(
+                            onFileSend: (base64String, fileName, filePath) {
+                              sendMessage(
+                                base64String,
+                                widget.sourceChat?.id,
+                                widget.chatModel?.id,
+                                filePath,
+                                isImage: false,
+                                isFile:
+                                    true, // تعيين isFile كـ true إذا كان ملف
+                              );
+                            },
                           ),
-                        );
-                      }
-                      Navigator.pop(
-                          context); // إغلاق الـ BottomSheet بعد اختيار الملف
+                        ),
+                      );
                     },
                   ),
                   SizedBox(
