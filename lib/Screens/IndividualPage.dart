@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 //111111
+import 'package:chattapplication/CustomUI/Own/OwnFileDisplay.dart';
 import 'package:chattapplication/CustomUI/Reply/ReplyFileDisplay.dart';
 import 'package:chattapplication/CustomUI/Own/OwnImageCard.dart';
 import 'package:chattapplication/CustomUI/Reply/ReplyImageCard.dart';
@@ -85,91 +86,90 @@ class _IndividualPageState extends State<IndividualPage> {
     });
   }
 
-
-void connect() {
-  try {
-    socket = IO.io("http://192.168.1.119:5000", <String, dynamic>{
-      "transports": ["websocket"],
-      "autoConnect": false,
-    });
-
-    socket?.connect();
-    socket?.onConnect((data) {
-      print("Connected to the server");
-      socket?.emit("signin", widget.sourceChat?.id);
-      
-      // التأكد من عدم تكرار المستمع
-      socket?.off("message"); 
-
-      socket?.on("message", (msg) {
-        print("New message received: ${msg["message"]}");
-        if (msg["message"] != null) {
-          String decryptedMessage = decryptMessage(msg["message"]);
-          print("Decrypted message: $decryptedMessage");
-          setMessage(
-            "destination",
-            decryptedMessage,
-            msg["path"] ?? '',
-            isImage: msg["isImage"] == true,
-            isFile: msg["isFile"] == true,
-          );
-          _scrollController.animateTo(
-            _scrollController.position.maxScrollExtent,
-            duration: Duration(milliseconds: 300),
-            curve: Curves.easeOut,
-          );
-        } else {
-          print("Received message without content");
-        }
+  void connect() {
+    try {
+      socket = IO.io("http://192.168.84.119:5000", <String, dynamic>{
+        "transports": ["websocket"],
+        "autoConnect": false,
       });
-    });
 
-    socket?.onConnectError((data) {
-      print("Connection Error: $data");
-    });
+      socket?.connect();
+      socket?.onConnect((data) {
+        print("Connected to the server");
+        socket?.emit("signin", widget.sourceChat?.id);
 
-    socket?.onError((error) {
-      print("Error: $error");
-    });
+        // التأكد من عدم تكرار المستمع
+        socket?.off("message");
 
-    socket?.onDisconnect((_) {
-      print("Disconnected from the server");
-    });
+        socket?.on("message", (msg) {
+          print("New message received: ${msg["message"]}");
+          if (msg["message"] != null) {
+            String decryptedMessage = decryptMessage(msg["message"]);
+            print("Decrypted message: $decryptedMessage");
+            setMessage(
+              "destination",
+              decryptedMessage,
+              msg["path"] ?? '',
+              isImage: msg["isImage"] == true,
+              isFile: msg["isFile"] == true,
+            );
+            _scrollController.animateTo(
+              _scrollController.position.maxScrollExtent,
+              duration: Duration(milliseconds: 300),
+              curve: Curves.easeOut,
+            );
+          } else {
+            print("Received message without content");
+          }
+        });
+      });
 
-    print("Attempting to connect...");
-  } catch (e) {
-    print("Error during connection: $e");
+      socket?.onConnectError((data) {
+        print("Connection Error: $data");
+      });
+
+      socket?.onError((error) {
+        print("Error: $error");
+      });
+
+      socket?.onDisconnect((_) {
+        print("Disconnected from the server");
+      });
+
+      print("Attempting to connect...");
+    } catch (e) {
+      print("Error during connection: $e");
+    }
   }
-}
 
-void sendMessage(String message, int? sourceId, int? targetId, String path,
-    {bool isImage = false, bool isFile = false}) {
-  if (sourceId == null || targetId == null || message.isEmpty) {
-    print("Error: sourceId, targetId, or message is null or empty");
-    return;
+  void sendMessage(String message, int? sourceId, int? targetId, String path,
+      {bool isImage = false, bool isFile = false}) {
+    if (sourceId == null || targetId == null || message.isEmpty) {
+      print("Error: sourceId, targetId, or message is null or empty");
+      return;
+    }
+
+    // تشفير الرسالة قبل الإرسال
+    String encryptedMessage = encryptMessage(message);
+
+    print("Sending message from $sourceId to $targetId: $encryptedMessage");
+
+    socket?.emit(
+      "message",
+      {
+        "message": encryptedMessage, // إرسال الرسالة المشفرة
+        "sourceId": sourceId,
+        "targetId": targetId,
+        "isImage": isImage,
+        "isFile": isFile,
+        "path": path,
+      },
+    );
+
+    // إضافة الرسالة غير المشفرة إلى القائمة عند المرسل
+    setMessage("source", message, path, isImage: isImage, isFile: isFile);
+    print("Message sent and added to source list: $message");
   }
-
-  // تشفير الرسالة قبل الإرسال
-  String encryptedMessage = encryptMessage(message);
-
-  print("Sending message from $sourceId to $targetId: $encryptedMessage");
-
-  socket?.emit(
-    "message",
-    {
-      "message": encryptedMessage, // إرسال الرسالة المشفرة
-      "sourceId": sourceId,
-      "targetId": targetId,
-      "isImage": isImage,
-      "isFile": isFile,
-      "path": path,
-    },
-  );
-
-  // إضافة الرسالة غير المشفرة إلى القائمة عند المرسل
-  setMessage("source", message, path, isImage: isImage, isFile: isFile);
-  print("Message sent and added to source list: $message");
-}
 
   void setMessage(String type, String message, String path,
       {bool? isImage = false, bool? isFile = false}) {
@@ -390,9 +390,8 @@ void sendMessage(String message, int? sourceId, int? targetId, String path,
                 }
 
                 if (message.isFile == true) {
-                  return ReplyFileDisplay(
+                  return OwnFileDisplay(
                     filePath: message.path ?? '',
-                    message: message.message ?? '',
                     time: message.time ?? '',
                     fileType: getFileType(message.path),
                   );
@@ -644,15 +643,17 @@ void sendMessage(String message, int? sourceId, int? targetId, String path,
                         context,
                         MaterialPageRoute(
                           builder: (context) => FileChatWidget(
-                            onFileSend: (base64String, fileName, filePath) {
+                            onFileSend: (String base64String, String fileName,
+                                String filePath, String fileType) {
+                              // هنا يمكنك تنفيذ ما تريد فعله مع الملف الذي تم إرساله
+                              print("File sent: $fileName");
+                              // استخدم الدالة sendMessage لإرسال الملف
                               sendMessage(
-                                base64String,
+                                base64String, // المحتوى المشفر للملف
                                 widget.sourceChat?.id,
                                 widget.chatModel?.id,
                                 filePath,
-                                isImage: false,
-                                isFile:
-                                    true, // تعيين isFile كـ true إذا كان ملف
+                                isFile: true,
                               );
                             },
                           ),

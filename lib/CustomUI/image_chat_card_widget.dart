@@ -36,8 +36,7 @@ class ImageChatWidget extends StatelessWidget {
                 Expanded(
                   child: Image.memory(
                   base64Decode(data),
-                    fit: BoxFit.fitHeight,
-                                
+                    fit: BoxFit.fitHeight,            
                   ),
                 ),
                 // Text(message),
