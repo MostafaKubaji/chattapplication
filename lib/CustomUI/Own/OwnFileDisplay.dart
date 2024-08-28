@@ -19,35 +19,44 @@ class OwnFileDisplay extends StatelessWidget {
       onTap: () {
         OpenFile.open(filePath); // فتح الملف عند الضغط عليه
       },
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.grey[200], // لون الخلفية
-          borderRadius: BorderRadius.circular(10), // زوايا دائرية
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            _buildFileIcon(fileType), // استدعاء الدالة التي تبني أيقونة الملف
-            SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    filePath.split('/').last, // عرض اسم الملف فقط
-                    style: TextStyle(fontSize: 16, color: Colors.black),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  SizedBox(height: 5),
-                  Text(
-                    time,
-                    style: TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                ],
-              ),
+      child:Align(
+        alignment: Alignment.centerRight,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10,vertical: 5),
+          child: Container(
+            height: MediaQuery.of(context).size.height/9.5,
+            width: MediaQuery.of(context).size.width/1.4,
+
+            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            decoration: BoxDecoration(
+            color: Color.fromARGB(255, 0, 77, 150),
+              borderRadius: BorderRadius.circular(10), // زوايا دائرية
             ),
-          ],
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                _buildFileIcon(fileType), // استدعاء الدالة التي تبني أيقونة الملف
+                SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        filePath.split('/').last, // عرض اسم الملف فقط
+                        style: TextStyle(fontSize: 18, color: Colors.black),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      SizedBox(height: 5),
+                      Text(
+                        time,
+                        style: TextStyle(fontSize: 14, color:  Colors.grey),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

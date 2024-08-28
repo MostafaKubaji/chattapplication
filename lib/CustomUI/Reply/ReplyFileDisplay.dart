@@ -1,50 +1,63 @@
 import 'package:flutter/material.dart';
+import 'package:open_file/open_file.dart';
 
 class ReplyFileDisplay extends StatelessWidget {
   final String filePath;
-  final String message;
   final String time;
-  final String fileType; // إضافة نوع الملف لعرض الأيقونة المناسبة
+  final String fileType;
 
   const ReplyFileDisplay({
     Key? key,
     required this.filePath,
-    required this.message,
     required this.time,
-    required this.fileType, // استقبال نوع الملف كمدخل
+    required this.fileType,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildFileIcon(fileType), // استدعاء الدالة التي تبني أيقونة الملف
-          SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return InkWell(
+      onTap: () {
+        OpenFile.open(filePath); // فتح الملف عند الضغط عليه
+      },
+      child:Align(
+        alignment: Alignment.centerLeft,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10,vertical: 5),
+          child: Container(
+            height: MediaQuery.of(context).size.height/9.5,
+            width: MediaQuery.of(context).size.width/1.4,
+
+            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            decoration: BoxDecoration(
+            color: Color.fromARGB(255, 0, 77, 150),
+              borderRadius: BorderRadius.circular(10), // زوايا دائرية
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text(
-                  message,
-                  style: TextStyle(fontSize: 16, color: Colors.black),
-                ),
-                SizedBox(height: 5),
-                Text(
-                  filePath,
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-                SizedBox(height: 5),
-                Text(
-                  time,
-                  style: TextStyle(fontSize: 10, color: Colors.grey),
+                _buildFileIcon(fileType), // استدعاء الدالة التي تبني أيقونة الملف
+                SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        filePath.split('/').last, // عرض اسم الملف فقط
+                        style: TextStyle(fontSize: 18, color: Colors.black),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      SizedBox(height: 5),
+                      Text(
+                        time,
+                        style: TextStyle(fontSize: 14, color:  Colors.grey),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -53,12 +66,16 @@ class ReplyFileDisplay extends StatelessWidget {
   Widget _buildFileIcon(String fileType) {
     switch (fileType.toLowerCase()) {
       case 'pdf':
-        return Icon(Icons.picture_as_pdf, size: 30, color: Colors.red);
+        return Icon(Icons.picture_as_pdf, size: 40, color: Colors.red);
       case 'doc':
       case 'docx':
-        return Icon(Icons.description, size: 30, color: Colors.blue);
+        return Icon(Icons.description, size: 40, color: Colors.blue);
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+        return Icon(Icons.image, size: 40, color: Colors.green);
       default:
-        return Icon(Icons.insert_drive_file, size: 30, color: Colors.indigo);
+        return Icon(Icons.insert_drive_file, size: 40, color: Colors.indigo);
     }
   }
 }

@@ -18,13 +18,19 @@ import 'package:flutter/cupertino.dart';
 import 'package:chattapplication/Model/ChatModel.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:pointycastle/api.dart';
+import 'package:pointycastle/asymmetric/api.dart';
+import 'package:pointycastle/asymmetric/rsa.dart';
+import 'package:pointycastle/key_generators/api.dart';
+import 'package:pointycastle/key_generators/rsa_key_generator.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
-import 'package:http/http.dart' as http;
 import 'package:file_picker/file_picker.dart';
-import 'package:chattapplication/CustomUI/FileChatWidget.dart' as chat;
-import 'package:chattapplication/CustomUI/Reply/ReplyFileDisplay.dart'
-    as display;
 import 'package:encrypt/encrypt.dart' as encrypt;
+import 'package:asn1lib/asn1lib.dart';
+import 'dart:math';
+import 'dart:typed_data';
+import 'package:flutter/widgets.dart' as flutterWidgets;
+import 'package:pointycastle/api.dart' as pointycastleAPI;
 
 class IndividualPage extends StatefulWidget {
   const IndividualPage({super.key, this.chatModel, this.sourceChat});
@@ -46,6 +52,72 @@ class _IndividualPageState extends State<IndividualPage> {
   IO.Socket? socket;
   XFile? file;
   int popTime = 0;
+  RSAPrivateKey? privateKey;
+  RSAPublicKey? targetPublicKey; // إضافة هذا السطر
+
+  @override
+  void initState() {
+    super.initState();
+    connect();
+    focusNode.addListener(() {
+      if (focusNode.hasFocus) {
+        setState(() {
+          showEmojiPicker = false;
+        });
+      }
+    });
+  }
+
+AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey> generateRSAKeyPair(
+    {int bitLength = 2048}) {
+  var rnd = SecureRandom('Fortuna')
+    ..seed(KeyParameter(Uint8List.fromList(
+        List.generate(32, (_) => Random.secure().nextInt(255)))));
+  var keyGen = RSAKeyGenerator()
+    ..init(ParametersWithRandom(
+        RSAKeyGeneratorParameters(BigInt.parse('65537'), bitLength, 64),
+        rnd));
+  
+  // الحصول على الزوج العام والخاص
+  var pair = keyGen.generateKeyPair();
+  
+  // استخراج المفتاح العام والخاص وتحويلهما إلى النوع الصحيح
+  var rsaPublicKey = pair.publicKey as RSAPublicKey;
+  var rsaPrivateKey = pair.privateKey as RSAPrivateKey;
+  
+  // إرجاع الزوج بالمفاتيح الصحيحة
+  return AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey>(
+      rsaPublicKey, rsaPrivateKey);
+}
+
+
+  Uint8List rsaEncrypt(RSAPublicKey publicKey, Uint8List dataToEncrypt) {
+    var encryptor = RSAEngine()
+      ..init(true, PublicKeyParameter<RSAPublicKey>(publicKey));
+    return _processInBlocks(encryptor, dataToEncrypt);
+  }
+
+  Uint8List rsaDecrypt(RSAPrivateKey privateKey, Uint8List cipherText) {
+    var decryptor = RSAEngine()
+      ..init(false, PrivateKeyParameter<RSAPrivateKey>(privateKey));
+    return _processInBlocks(decryptor, cipherText);
+  }
+
+  Uint8List _processInBlocks(AsymmetricBlockCipher engine, Uint8List input) {
+    int inputOffset = 0;
+    int inputBlockSize = engine.inputBlockSize;
+    int outputBlockSize = engine.outputBlockSize;
+    Uint8List output = Uint8List(0);
+
+    while (inputOffset < input.length) {
+      int chunkSize = min(inputBlockSize, input.length - inputOffset);
+      Uint8List chunk = Uint8List.view(input.buffer, inputOffset, chunkSize);
+      Uint8List processedChunk = engine.process(chunk);
+      output = Uint8List.fromList(output + processedChunk);
+      inputOffset += chunkSize;
+    }
+    return output;
+  }
 
   // مفتاح التشفير بطول 128 بت (16 بايت)
   final key = encrypt.Key.fromUtf8('my16byteskey1234'); // 16 بايت
@@ -72,104 +144,155 @@ class _IndividualPageState extends State<IndividualPage> {
         encrypter.decrypt(encrypt.Encrypted.fromBase16(encryptedText), iv: iv);
     return decrypted;
   }
+void connect() {
+  try {
+    socket = IO.io("http://192.168.84.119:5000", <String, dynamic>{
+      "transports": ["websocket"],
+      "autoConnect": false,
+    });
 
-  @override
-  void initState() {
-    super.initState();
-    connect();
-    focusNode.addListener(() {
-      if (focusNode.hasFocus) {
-        setState(() {
-          showEmojiPicker = false;
-        });
+    socket?.connect();
+
+    socket?.onConnect((data) {
+      print("Connected to the server");
+
+      var rsaKeyPair = generateRSAKeyPair();
+      var publicKey = rsaKeyPair.publicKey;
+      privateKey = rsaKeyPair.privateKey;
+
+      // إرسال المفتاح العام للخادم
+      var publicKeyBytes = ASN1Sequence()
+        ..add(ASN1Integer(publicKey.modulus!))
+        ..add(ASN1Integer(publicKey.exponent!));
+      socket?.emit("send_public_key", publicKeyBytes.encodedBytes);
+
+      // إرسال معرف المحادثة للتسجيل
+      socket?.emit("signin", widget.sourceChat?.id);
+    });
+
+    socket?.on("public_key", (data) {
+      print("Received public key data: $data");
+
+      try {
+        var asn1Parser = ASN1Parser(Uint8List.fromList(data));
+        var sequence = asn1Parser.nextObject() as ASN1Sequence;
+        var modulus = sequence.elements[0] as ASN1Integer;
+        var exponent = sequence.elements[1] as ASN1Integer;
+        targetPublicKey = RSAPublicKey(modulus.valueAsBigInteger, exponent.valueAsBigInteger);
+
+        print("Target public key successfully parsed and stored.");
+      } catch (e) {
+        print("Failed to parse the public key: $e");
       }
     });
+
+    socket?.on("message", (msg) {
+      var encryptedAesKeyData = msg['encryptedAesKey'];
+      if (encryptedAesKeyData != null) {
+        var encryptedAesKey = Uint8List.fromList(encryptedAesKeyData);
+        var decryptedAesKey = rsaDecrypt(privateKey!, encryptedAesKey);
+
+        // فك تشفير الرسالة باستخدام مفتاح AES المفكوك
+        var encryptedMessage = msg['message'];
+        if (encryptedMessage != null && encryptedMessage is String) {
+          var decryptedMessage = decryptMessage(encryptedMessage);
+          print("Decrypted message: $decryptedMessage");
+
+          setMessage(
+            "destination",
+            decryptedMessage,
+            msg["path"] ?? '',
+            isImage: msg["isImage"] == true,
+            isFile: msg["isFile"] == true,
+          );
+
+          _scrollController.animateTo(
+            _scrollController.position.maxScrollExtent,
+            duration: Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          );
+        } else {
+          print("Received message without content");
+        }
+      } else {
+        // التعامل مع الرسالة بدون مفتاح AES مشفر
+        var encryptedMessage = msg['message'];
+        if (encryptedMessage != null && encryptedMessage is String) {
+          var decryptedMessage = decryptMessage(encryptedMessage);
+          print("Decrypted message without AES key: $decryptedMessage");
+
+          setMessage(
+            "destination",
+            decryptedMessage,
+            msg["path"] ?? '',
+            isImage: msg["isImage"] == true,
+            isFile: msg["isFile"] == true,
+          );
+
+          _scrollController.animateTo(
+            _scrollController.position.maxScrollExtent,
+            duration: Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          );
+        } else {
+          print("Received message without content");
+        }
+      }
+    });
+  } catch (e) {
+    print("Error during connection: $e");
+  }
+}
+
+void sendMessage(String message, int? sourceId, int? targetId, String path,
+    {bool isImage = false, bool isFile = false}) {
+  if (sourceId == null || targetId == null || message.isEmpty) {
+    print("Error: sourceId, targetId, or message is null or empty");
+    return;
   }
 
-  void connect() {
-    try {
-      socket = IO.io("http://192.168.84.119:5000", <String, dynamic>{
-        "transports": ["websocket"],
-        "autoConnect": false,
-      });
+  // تشفير الرسالة باستخدام AES
+  String encryptedMessage = encryptMessage(message);
 
-      socket?.connect();
-      socket?.onConnect((data) {
-        print("Connected to the server");
-        socket?.emit("signin", widget.sourceChat?.id);
-
-        // التأكد من عدم تكرار المستمع
-        socket?.off("message");
-
-        socket?.on("message", (msg) {
-          print("New message received: ${msg["message"]}");
-          if (msg["message"] != null) {
-            String decryptedMessage = decryptMessage(msg["message"]);
-            print("Decrypted message: $decryptedMessage");
-            setMessage(
-              "destination",
-              decryptedMessage,
-              msg["path"] ?? '',
-              isImage: msg["isImage"] == true,
-              isFile: msg["isFile"] == true,
-            );
-            _scrollController.animateTo(
-              _scrollController.position.maxScrollExtent,
-              duration: Duration(milliseconds: 300),
-              curve: Curves.easeOut,
-            );
-          } else {
-            print("Received message without content");
-          }
-        });
-      });
-
-      socket?.onConnectError((data) {
-        print("Connection Error: $data");
-      });
-
-      socket?.onError((error) {
-        print("Error: $error");
-      });
-
-      socket?.onDisconnect((_) {
-        print("Disconnected from the server");
-      });
-
-      print("Attempting to connect...");
-    } catch (e) {
-      print("Error during connection: $e");
-    }
-  }
-
-  void sendMessage(String message, int? sourceId, int? targetId, String path,
-      {bool isImage = false, bool isFile = false}) {
-    if (sourceId == null || targetId == null || message.isEmpty) {
-      print("Error: sourceId, targetId, or message is null or empty");
-      return;
-    }
-
-    // تشفير الرسالة قبل الإرسال
-    String encryptedMessage = encryptMessage(message);
-
-    print("Sending message from $sourceId to $targetId: $encryptedMessage");
-
+  if (targetPublicKey == null) {
+    // إذا لم يكن هناك مفتاح عام للطرف الآخر، إرسال الرسالة بدون تشفير مفتاح AES
     socket?.emit(
       "message",
       {
-        "message": encryptedMessage, // إرسال الرسالة المشفرة
+        "message": encryptedMessage,
         "sourceId": sourceId,
         "targetId": targetId,
         "isImage": isImage,
         "isFile": isFile,
         "path": path,
+        "encryptedAesKey": key.bytes, // إرسال مفتاح AES بدون تشفير
       },
     );
+  } else {
+    // إذا كان هناك مفتاح عام للطرف الآخر، استخدم التشفير RSA و AES
+    Uint8List encryptedAesKey = rsaEncrypt(targetPublicKey!, key.bytes);
 
-    // إضافة الرسالة غير المشفرة إلى القائمة عند المرسل
-    setMessage("source", message, path, isImage: isImage, isFile: isFile);
-    print("Message sent and added to source list: $message");
+    // إرسال الرسالة المشفرة مع مفتاح AES المشفر
+    socket?.emit(
+      "message",
+      {
+        "message": encryptedMessage,
+        "sourceId": sourceId,
+        "targetId": targetId,
+        "isImage": isImage,
+        "isFile": isFile,
+        "path": path,
+        "encryptedAesKey": encryptedAesKey,
+      },
+    );
   }
+  
+  // إضافة الرسالة غير المشفرة إلى القائمة عند المرسل
+  setMessage("source", message, path, isImage: isImage, isFile: isFile);
+  print("Message sent and added to source list: $message");
+}
+
+
 
   void setMessage(String type, String message, String path,
       {bool? isImage = false, bool? isFile = false}) {
@@ -181,9 +304,24 @@ class _IndividualPageState extends State<IndividualPage> {
       isFile: isFile,
       time: DateTime.now().toString().substring(10, 16),
     );
+
     setState(() {
       messages.add(messageModel);
     });
+
+    // إذا كانت الرسالة من نوع "destination" (أي تم استلامها من الخادم)
+    if (type == "destination") {
+      saveDecryptedMessageToFile(message); // حفظ الرسالة المفككة إلى ملف
+    }
+  }
+
+  Future<void> saveDecryptedMessageToFile(String decryptedMessage) async {
+    final directory = await Directory.systemTemp.createTemp();
+    final file = File('${directory.path}/message.txt');
+
+    await file.writeAsString(decryptedMessage);
+
+    print('Decrypted message saved to ${file.path}');
   }
 
   void onSendImage(
@@ -198,6 +336,19 @@ class _IndividualPageState extends State<IndividualPage> {
     sendMessage(
         imageBase64String, widget.sourceChat?.id, widget.chatModel?.id, "",
         isImage: true);
+  }
+
+  void onSendFile(String type, File file, String path) async {
+    final fileBytes = await file.readAsBytes();
+    final fileBase64String = base64Encode(fileBytes);
+
+    sendMessage(
+      fileBase64String,
+      widget.sourceChat?.id,
+      widget.chatModel?.id,
+      path,
+      isFile: true,
+    );
   }
 
   @override
@@ -364,73 +515,82 @@ class _IndividualPageState extends State<IndividualPage> {
         child: Column(
           children: [
             Expanded(
-                // child: buildMessagesList(),
+              // child: buildMessagesList(),
 
-                child: ListView.builder(
-              controller: _scrollController,
-              itemCount: messages.length + 1,
-              itemBuilder: (context, index) {
-                if (index == messages.length) {
-                  return SizedBox(height: 70);
-                }
-                final message = messages[index];
-
-                String getFileType(String? path) {
-                  if (path == null || path.isEmpty) return 'unknown';
-                  final extension = path.split('.').last.toLowerCase();
-                  switch (extension) {
-                    case 'pdf':
-                      return 'pdf';
-                    case 'doc':
-                    case 'docx':
-                      return 'doc';
-                    default:
-                      return 'unknown';
+              child: ListView.builder(
+                controller: _scrollController,
+                itemCount: messages.length + 1,
+                itemBuilder: (context, index) {
+                  if (index == messages.length) {
+                    return SizedBox(height: 70);
                   }
-                }
+                  final message = messages[index];
 
-                if (message.isFile == true) {
-                  return OwnFileDisplay(
-                    filePath: message.path ?? '',
-                    time: message.time ?? '',
-                    fileType: getFileType(message.path),
-                  );
-                } else if (message.isImage == true) {
-                  return ImageChatWidget(
-                    data: message.message ?? '',
-                    message: message.message ?? '',
-                    time: message.time ?? '',
-                  );
-                } else if (message.type == "source") {
-                  if (message.path != null && message.path!.isNotEmpty) {
-                    return OwnImageCard(
-                      path: message.path ?? '',
+                  String getFileType(String? path) {
+                    if (path == null || path.isEmpty) return 'unknown';
+                    final extension = path.split('.').last.toLowerCase();
+                    switch (extension) {
+                      case 'pdf':
+                        return 'pdf';
+                      case 'doc':
+                      case 'docx':
+                        return 'doc';
+                      default:
+                        return 'unknown';
+                    }
+                  }
+
+                  if (message.isFile == true) {
+                    if (message.type == "source") {
+                      return OwnFileDisplay(
+                        filePath: message.path ?? '',
+                        time: message.time ?? '',
+                        fileType: getFileType(message.path),
+                      );
+                    } else {
+                      return ReplyFileDisplay(
+                        filePath: message.path ?? '',
+                        time: message.time ?? '',
+                        fileType: getFileType(message.path),
+                      );
+                    }
+                  } else if (message.isImage == true) {
+                    return ImageChatWidget(
+                      data: message.message ?? '',
                       message: message.message ?? '',
                       time: message.time ?? '',
                     );
+                  } else if (message.type == "source") {
+                    if (message.path != null && message.path!.isNotEmpty) {
+                      return OwnImageCard(
+                        path: message.path ?? '',
+                        message: message.message ?? '',
+                        time: message.time ?? '',
+                      );
+                    } else {
+                      return OwnMessageCard(
+                        message: message.message,
+                        time: message.time,
+                      );
+                    }
                   } else {
-                    return OwnMessageCard(
-                      message: message.message,
-                      time: message.time,
-                    );
+                    if (message.path != null && message.path!.isNotEmpty) {
+                      return ReplyImageCard(
+                        path: message.path ?? '',
+                        message: message.message ?? '',
+                        time: message.time ?? '',
+                      );
+                    } else {
+                      return ReplyMessageCard(
+                        message: message.message,
+                        time: message.time,
+                        path: message.path,
+                      );
+                    }
                   }
-                } else {
-                  if (message.path != null && message.path!.isNotEmpty) {
-                    return ReplyImageCard(
-                      path: message.path ?? '',
-                      message: message.message ?? '',
-                      time: message.time ?? '',
-                    );
-                  } else {
-                    return ReplyMessageCard(
-                      message: message.message,
-                      time: message.time,
-                      path: message.path,
-                    );
-                  }
-                }
-              },
-            )),
+                },
+              ),
+            ),
             buildInputArea(),
           ],
         ),
@@ -557,7 +717,7 @@ class _IndividualPageState extends State<IndividualPage> {
   }
 
   Widget buildSendButton() {
-    return Padding(
+    return flutterWidgets.Padding(
       padding: const EdgeInsets.only(
         bottom: 8,
         right: 5,
@@ -625,7 +785,7 @@ class _IndividualPageState extends State<IndividualPage> {
       width: MediaQuery.of(context).size.width,
       child: Card(
         margin: EdgeInsets.all(18),
-        child: Padding(
+        child: flutterWidgets.Padding(
           padding: const EdgeInsets.symmetric(
             horizontal: 10,
             vertical: 20,
@@ -639,26 +799,17 @@ class _IndividualPageState extends State<IndividualPage> {
                     color: Colors.indigo,
                     label: "Document",
                     onPressed: () async {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => FileChatWidget(
-                            onFileSend: (String base64String, String fileName,
-                                String filePath, String fileType) {
-                              // هنا يمكنك تنفيذ ما تريد فعله مع الملف الذي تم إرساله
-                              print("File sent: $fileName");
-                              // استخدم الدالة sendMessage لإرسال الملف
-                              sendMessage(
-                                base64String, // المحتوى المشفر للملف
-                                widget.sourceChat?.id,
-                                widget.chatModel?.id,
-                                filePath,
-                                isFile: true,
-                              );
-                            },
-                          ),
-                        ),
-                      );
+                      FilePickerResult? result =
+                          await FilePicker.platform.pickFiles();
+
+                      if (result != null) {
+                        File selectedFile = File(result.files.single.path!);
+                        String filePath = result.files.single.path!;
+                        String fileType = filePath.split('.').last;
+
+                        // استخدام onSendFile لإرسال الملف
+                        onSendFile(fileType, selectedFile, filePath);
+                      }
                     },
                   ),
                   SizedBox(
