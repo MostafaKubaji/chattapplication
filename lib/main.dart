@@ -3,7 +3,7 @@ import 'package:chattapplication/NewScreen/LandingScreen.dart';
 import 'package:flutter/material.dart';
 
 List<CameraDescription>? cameras;
-//1
+//100
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   cameras = await availableCameras();

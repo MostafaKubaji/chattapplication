@@ -606,7 +606,7 @@ void sendMessage(String message, int? sourceId, int? targetId, String path,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            buildImagePreview(),
+          // buildImagePreview(),
             buildMessageInput(),
             buildEmojiPicker(),
           ],
@@ -643,10 +643,6 @@ void sendMessage(String message, int? sourceId, int? targetId, String path,
   Widget buildMessageField() {
     return Flexible(
       child: Card(
-        margin: EdgeInsets.only(left: 2, right: 2, bottom: 8),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(25),
-        ),
         child: TextFormField(
           controller: _controller,
           focusNode: focusNode,
@@ -844,8 +840,7 @@ void sendMessage(String message, int? sourceId, int? targetId, String path,
                       setState(() {
                         popTime = 2;
                       });
-                      file =
-                          await _picker.pickImage(source: ImageSource.gallery);
+                      file = await _picker.pickImage(source: ImageSource.gallery);
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -854,7 +849,11 @@ void sendMessage(String message, int? sourceId, int? targetId, String path,
                             onImageSend: onSendImage,
                           ),
                         ),
-                      );
+                      ).then((value){
+                         Navigator.pop(context);
+                        setState(() {
+                          });
+                      });
                     },
                   ),
                 ],
