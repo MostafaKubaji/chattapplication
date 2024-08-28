@@ -32,6 +32,11 @@ import 'dart:typed_data';
 import 'package:flutter/widgets.dart' as flutterWidgets;
 import 'package:pointycastle/api.dart' as pointycastleAPI;
 
+// import 'package:flutter_windowmanager/flutter_windowmanager.dart';
+
+
+
+
 class IndividualPage extends StatefulWidget {
   const IndividualPage({super.key, this.chatModel, this.sourceChat});
   final ChatModel? chatModel;
@@ -58,6 +63,8 @@ class _IndividualPageState extends State<IndividualPage> {
   @override
   void initState() {
     super.initState();
+  // secureScreen();
+
     connect();
     focusNode.addListener(() {
       if (focusNode.hasFocus) {
@@ -68,6 +75,9 @@ class _IndividualPageState extends State<IndividualPage> {
     });
   }
 
+// void secureScreen() async {
+//   await FlutterWindowManager.addFlags(FlutterWindowManager.FLAG_SECURE);
+// }
 AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey> generateRSAKeyPair(
     {int bitLength = 2048}) {
   var rnd = SecureRandom('Fortuna')

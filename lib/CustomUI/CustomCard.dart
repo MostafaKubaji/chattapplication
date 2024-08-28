@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:chattapplication/Model/ChatModel.dart';
 import 'package:chattapplication/Screens/IndividualPage.dart';
+
 class Customcard extends StatelessWidget {
   const Customcard({super.key, required this.chatModel, this.sourcechat});
   final ChatModel chatModel;
   final ChatModel? sourcechat;
 
+
+  
   @override
   Widget build(BuildContext context) {
     return InkWell(

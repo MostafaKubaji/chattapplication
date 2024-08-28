@@ -1,9 +1,13 @@
 import 'package:camera/camera.dart';
 import 'package:chattapplication/NewScreen/LandingScreen.dart';
 import 'package:flutter/material.dart';
+import 'dart:io';
+// import 'package:flutter_windowmanager/flutter_windowmanager.dart';
+
 
 List<CameraDescription>? cameras;
-//100
+//111
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   cameras = await availableCameras();
@@ -24,4 +28,5 @@ class MyApp extends StatelessWidget {
       home: LandingScreen(),
     );
   }
+  
 }
