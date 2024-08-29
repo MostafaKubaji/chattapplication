@@ -1,5 +1,7 @@
+// // build.gradle in root project directory
+
 // buildscript {
-//     ext.kotlin_version = '1.9.23'
+//     ext.kotlin_version = '2.0.20' // تأكد من أن الإصدار هو أحدث إصدار
 //     repositories {
 //         google()
 //         mavenCentral()
@@ -7,6 +9,7 @@
 
 //     dependencies {
 //         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+//         // يمكنك إضافة الإضافات الأخرى هنا
 //     }
 // }
 

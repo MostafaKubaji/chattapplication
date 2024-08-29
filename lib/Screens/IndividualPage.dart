@@ -10,6 +10,7 @@ import 'package:chattapplication/CustomUI/image_chat_card_widget.dart';
 import 'package:chattapplication/CustomUI/FileChatWidget.dart';
 import 'package:chattapplication/Screens/CameraScreen.dart';
 import 'package:chattapplication/Screens/CameraView.dart';
+import 'package:chattapplication/config.dart';
 import 'package:flutter/material.dart';
 import 'package:chattapplication/CustomUI/Own/OwnMessageCard.dart';
 import 'package:chattapplication/Model/MessageModel.dart';
@@ -31,11 +32,7 @@ import 'dart:math';
 import 'dart:typed_data';
 import 'package:flutter/widgets.dart' as flutterWidgets;
 import 'package:pointycastle/api.dart' as pointycastleAPI;
-
-// import 'package:flutter_windowmanager/flutter_windowmanager.dart';
-
-
-
+import 'package:no_screenshot/no_screenshot.dart';
 
 class IndividualPage extends StatefulWidget {
   const IndividualPage({super.key, this.chatModel, this.sourceChat});
@@ -59,12 +56,14 @@ class _IndividualPageState extends State<IndividualPage> {
   int popTime = 0;
   RSAPrivateKey? privateKey;
   RSAPublicKey? targetPublicKey; // إضافة هذا السطر
+  final _noScreenshot = NoScreenshot.instance;
 
   @override
   void initState() {
     super.initState();
-  // secureScreen();
-
+    // secureScreen();
+    disableScreenshot();
+    listenForScreenshot();
     connect();
     focusNode.addListener(() {
       if (focusNode.hasFocus) {
@@ -75,31 +74,42 @@ class _IndividualPageState extends State<IndividualPage> {
     });
   }
 
+  void disableScreenshot() async {
+    bool result = await _noScreenshot.screenshotOff();
+    debugPrint('Screenshot Off: $result');
+  }
+
+  void listenForScreenshot() {
+    _noScreenshot.screenshotStream.listen((value) {
+      print('Screenshot taken: ${value.wasScreenshotTaken}');
+      print('Screenshot path: ${value.screenshotPath}');
+    });
+  }
+
 // void secureScreen() async {
 //   await FlutterWindowManager.addFlags(FlutterWindowManager.FLAG_SECURE);
 // }
-AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey> generateRSAKeyPair(
-    {int bitLength = 2048}) {
-  var rnd = SecureRandom('Fortuna')
-    ..seed(KeyParameter(Uint8List.fromList(
-        List.generate(32, (_) => Random.secure().nextInt(255)))));
-  var keyGen = RSAKeyGenerator()
-    ..init(ParametersWithRandom(
-        RSAKeyGeneratorParameters(BigInt.parse('65537'), bitLength, 64),
-        rnd));
-  
-  // الحصول على الزوج العام والخاص
-  var pair = keyGen.generateKeyPair();
-  
-  // استخراج المفتاح العام والخاص وتحويلهما إلى النوع الصحيح
-  var rsaPublicKey = pair.publicKey as RSAPublicKey;
-  var rsaPrivateKey = pair.privateKey as RSAPrivateKey;
-  
-  // إرجاع الزوج بالمفاتيح الصحيحة
-  return AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey>(
-      rsaPublicKey, rsaPrivateKey);
-}
+  AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey> generateRSAKeyPair(
+      {int bitLength = 2048}) {
+    var rnd = SecureRandom('Fortuna')
+      ..seed(KeyParameter(Uint8List.fromList(
+          List.generate(32, (_) => Random.secure().nextInt(255)))));
+    var keyGen = RSAKeyGenerator()
+      ..init(ParametersWithRandom(
+          RSAKeyGeneratorParameters(BigInt.parse('65537'), bitLength, 64),
+          rnd));
 
+    // الحصول على الزوج العام والخاص
+    var pair = keyGen.generateKeyPair();
+
+    // استخراج المفتاح العام والخاص وتحويلهما إلى النوع الصحيح
+    var rsaPublicKey = pair.publicKey as RSAPublicKey;
+    var rsaPrivateKey = pair.privateKey as RSAPrivateKey;
+
+    // إرجاع الزوج بالمفاتيح الصحيحة
+    return AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey>(
+        rsaPublicKey, rsaPrivateKey);
+  }
 
   Uint8List rsaEncrypt(RSAPublicKey publicKey, Uint8List dataToEncrypt) {
     var encryptor = RSAEngine()
@@ -154,176 +164,208 @@ AsymmetricKeyPair<RSAPublicKey, RSAPrivateKey> generateRSAKeyPair(
         encrypter.decrypt(encrypt.Encrypted.fromBase16(encryptedText), iv: iv);
     return decrypted;
   }
-void connect() {
-  try {
-    socket = IO.io("http://192.168.84.119:5000", <String, dynamic>{
-      "transports": ["websocket"],
-      "autoConnect": false,
-    });
 
-    socket?.connect();
+  void connect() {
+    try {
+      socket = IO.io("$serverIP", <String, dynamic>{
+        "transports": ["websocket"],
+        "autoConnect": false,
+      });
 
-    socket?.onConnect((data) {
-      print("Connected to the server");
+      socket?.connect();
 
-      var rsaKeyPair = generateRSAKeyPair();
-      var publicKey = rsaKeyPair.publicKey;
-      privateKey = rsaKeyPair.privateKey;
+      socket?.onConnect((data) {
+        print("Connected to the server");
 
-      // إرسال المفتاح العام للخادم
-      var publicKeyBytes = ASN1Sequence()
-        ..add(ASN1Integer(publicKey.modulus!))
-        ..add(ASN1Integer(publicKey.exponent!));
-      socket?.emit("send_public_key", publicKeyBytes.encodedBytes);
+        var rsaKeyPair = generateRSAKeyPair();
+        var publicKey = rsaKeyPair.publicKey;
+        privateKey = rsaKeyPair.privateKey;
 
-      // إرسال معرف المحادثة للتسجيل
-      socket?.emit("signin", widget.sourceChat?.id);
-    });
+        // إرسال المفتاح العام للخادم
+        var publicKeyBytes = ASN1Sequence()
+          ..add(ASN1Integer(publicKey.modulus!))
+          ..add(ASN1Integer(publicKey.exponent!));
+        socket?.emit("send_public_key", publicKeyBytes.encodedBytes);
 
-    socket?.on("public_key", (data) {
-      print("Received public key data: $data");
+        // إرسال معرف المحادثة للتسجيل
+        socket?.emit("signin", widget.sourceChat?.id);
+      });
 
-      try {
-        var asn1Parser = ASN1Parser(Uint8List.fromList(data));
-        var sequence = asn1Parser.nextObject() as ASN1Sequence;
-        var modulus = sequence.elements[0] as ASN1Integer;
-        var exponent = sequence.elements[1] as ASN1Integer;
-        targetPublicKey = RSAPublicKey(modulus.valueAsBigInteger, exponent.valueAsBigInteger);
+      socket?.on("public_key", (data) {
+        print("Received public key data: $data");
 
-        print("Target public key successfully parsed and stored.");
-      } catch (e) {
-        print("Failed to parse the public key: $e");
-      }
-    });
+        try {
+          var asn1Parser = ASN1Parser(Uint8List.fromList(data));
+          var sequence = asn1Parser.nextObject() as ASN1Sequence;
+          var modulus = sequence.elements[0] as ASN1Integer;
+          var exponent = sequence.elements[1] as ASN1Integer;
+          targetPublicKey = RSAPublicKey(
+              modulus.valueAsBigInteger, exponent.valueAsBigInteger);
 
-    socket?.on("message", (msg) {
-      var encryptedAesKeyData = msg['encryptedAesKey'];
-      if (encryptedAesKeyData != null) {
-        var encryptedAesKey = Uint8List.fromList(encryptedAesKeyData);
-        var decryptedAesKey = rsaDecrypt(privateKey!, encryptedAesKey);
-
-        // فك تشفير الرسالة باستخدام مفتاح AES المفكوك
-        var encryptedMessage = msg['message'];
-        if (encryptedMessage != null && encryptedMessage is String) {
-          var decryptedMessage = decryptMessage(encryptedMessage);
-          print("Decrypted message: $decryptedMessage");
-
-          setMessage(
-            "destination",
-            decryptedMessage,
-            msg["path"] ?? '',
-            isImage: msg["isImage"] == true,
-            isFile: msg["isFile"] == true,
-          );
-
-          _scrollController.animateTo(
-            _scrollController.position.maxScrollExtent,
-            duration: Duration(milliseconds: 300),
-            curve: Curves.easeOut,
-          );
-        } else {
-          print("Received message without content");
+          print("Target public key successfully parsed and stored.");
+        } catch (e) {
+          print("Failed to parse the public key: $e");
         }
-      } else {
-        // التعامل مع الرسالة بدون مفتاح AES مشفر
-        var encryptedMessage = msg['message'];
-        if (encryptedMessage != null && encryptedMessage is String) {
-          var decryptedMessage = decryptMessage(encryptedMessage);
-          print("Decrypted message without AES key: $decryptedMessage");
+      });
 
-          setMessage(
-            "destination",
-            decryptedMessage,
-            msg["path"] ?? '',
-            isImage: msg["isImage"] == true,
-            isFile: msg["isFile"] == true,
-          );
+      socket?.on("message", (msg) {
+        var encryptedAesKeyData = msg['encryptedAesKey'];
+        if (encryptedAesKeyData != null) {
+          var encryptedAesKey = Uint8List.fromList(encryptedAesKeyData);
+          var decryptedAesKey = rsaDecrypt(privateKey!, encryptedAesKey);
 
-          _scrollController.animateTo(
-            _scrollController.position.maxScrollExtent,
-            duration: Duration(milliseconds: 300),
-            curve: Curves.easeOut,
-          );
+          // فك تشفير الرسالة باستخدام مفتاح AES المفكوك
+          var encryptedMessage = msg['message'];
+          if (encryptedMessage != null && encryptedMessage is String) {
+            var decryptedMessage = decryptMessage(encryptedMessage);
+            print("Decrypted message: $decryptedMessage");
+
+            setMessage(
+              "destination",
+              decryptedMessage,
+              msg["path"] ?? '',
+              isImage: msg["isImage"] == true,
+              isFile: msg["isFile"] == true,
+            );
+
+            _scrollController.animateTo(
+              _scrollController.position.maxScrollExtent,
+              duration: Duration(milliseconds: 300),
+              curve: Curves.easeOut,
+            );
+          } else {
+            print("Received message without content");
+          }
         } else {
-          print("Received message without content");
+          // التعامل مع الرسالة بدون مفتاح AES مشفر
+          var encryptedMessage = msg['message'];
+          if (encryptedMessage != null && encryptedMessage is String) {
+            var decryptedMessage = decryptMessage(encryptedMessage);
+            print("Decrypted message without AES key: $decryptedMessage");
+
+            setMessage(
+              "destination",
+              decryptedMessage,
+              msg["path"] ?? '',
+              isImage: msg["isImage"] == true,
+              isFile: msg["isFile"] == true,
+            );
+
+            _scrollController.animateTo(
+              _scrollController.position.maxScrollExtent,
+              duration: Duration(milliseconds: 300),
+              curve: Curves.easeOut,
+            );
+          } else {
+            print("Received message without content");
+          }
         }
-      }
-    });
-  } catch (e) {
-    print("Error during connection: $e");
-  }
-}
-
-void sendMessage(String message, int? sourceId, int? targetId, String path,
-    {bool isImage = false, bool isFile = false}) {
-  if (sourceId == null || targetId == null || message.isEmpty) {
-    print("Error: sourceId, targetId, or message is null or empty");
-    return;
-  }
-
-  // تشفير الرسالة باستخدام AES
-  String encryptedMessage = encryptMessage(message);
-
-  if (targetPublicKey == null) {
-    // إذا لم يكن هناك مفتاح عام للطرف الآخر، إرسال الرسالة بدون تشفير مفتاح AES
-    socket?.emit(
-      "message",
-      {
-        "message": encryptedMessage,
-        "sourceId": sourceId,
-        "targetId": targetId,
-        "isImage": isImage,
-        "isFile": isFile,
-        "path": path,
-        "encryptedAesKey": key.bytes, // إرسال مفتاح AES بدون تشفير
-      },
-    );
-  } else {
-    // إذا كان هناك مفتاح عام للطرف الآخر، استخدم التشفير RSA و AES
-    Uint8List encryptedAesKey = rsaEncrypt(targetPublicKey!, key.bytes);
-
-    // إرسال الرسالة المشفرة مع مفتاح AES المشفر
-    socket?.emit(
-      "message",
-      {
-        "message": encryptedMessage,
-        "sourceId": sourceId,
-        "targetId": targetId,
-        "isImage": isImage,
-        "isFile": isFile,
-        "path": path,
-        "encryptedAesKey": encryptedAesKey,
-      },
-    );
-  }
-  
-  // إضافة الرسالة غير المشفرة إلى القائمة عند المرسل
-  setMessage("source", message, path, isImage: isImage, isFile: isFile);
-  print("Message sent and added to source list: $message");
-}
-
-
-
-  void setMessage(String type, String message, String path,
-      {bool? isImage = false, bool? isFile = false}) {
-    MessageModel messageModel = MessageModel(
-      type: type,
-      message: message,
-      path: path,
-      isImage: isImage,
-      isFile: isFile,
-      time: DateTime.now().toString().substring(10, 16),
-    );
-
-    setState(() {
-      messages.add(messageModel);
-    });
-
-    // إذا كانت الرسالة من نوع "destination" (أي تم استلامها من الخادم)
-    if (type == "destination") {
-      saveDecryptedMessageToFile(message); // حفظ الرسالة المفككة إلى ملف
+      });
+    } catch (e) {
+      print("Error during connection: $e");
     }
   }
+
+  void sendMessage(String message, int? sourceId, int? targetId, String path,
+      {bool isImage = false, bool isFile = false}) {
+    if (sourceId == null || targetId == null || message.isEmpty) {
+      print("Error: sourceId, targetId, or message is null or empty");
+      return;
+    }
+
+    // تشفير الرسالة باستخدام AES
+    String encryptedMessage = encryptMessage(message);
+
+    if (targetPublicKey == null) {
+      // إذا لم يكن هناك مفتاح عام للطرف الآخر، إرسال الرسالة بدون تشفير مفتاح AES
+      socket?.emit(
+        "message",
+        {
+          "message": encryptedMessage,
+          "sourceId": sourceId,
+          "targetId": targetId,
+          "isImage": isImage,
+          "isFile": isFile,
+          "path": path,
+          "encryptedAesKey": key.bytes, // إرسال مفتاح AES بدون تشفير
+        },
+      );
+    } else {
+      // إذا كان هناك مفتاح عام للطرف الآخر، استخدم التشفير RSA و AES
+      Uint8List encryptedAesKey = rsaEncrypt(targetPublicKey!, key.bytes);
+
+      // إرسال الرسالة المشفرة مع مفتاح AES المشفر
+      socket?.emit(
+        "message",
+        {
+          "message": encryptedMessage,
+          "sourceId": sourceId,
+          "targetId": targetId,
+          "isImage": isImage,
+          "isFile": isFile,
+          "path": path,
+          "encryptedAesKey": encryptedAesKey,
+        },
+      );
+    }
+
+    // إضافة الرسالة غير المشفرة إلى القائمة عند المرسل
+    setMessage("source", message, path, isImage: isImage, isFile: isFile);
+    print("Message sent and added to source list: $message");
+  }
+
+void setMessage(String type, String message, String path,
+    {bool? isImage = false, bool? isFile = false}) {
+  MessageModel messageModel = MessageModel(
+    type: type,
+    message: message,
+    path: path,
+    isImage: isImage,
+    isFile: isFile,
+    time: DateTime.now().toString().substring(10, 16),
+  );
+
+  setState(() {
+    messages.add(messageModel);
+  });
+
+  // إذا كانت الرسالة من نوع "destination" (أي تم استلامها من الخادم)
+  if (type == "destination" && isFile == true) {
+    decodeAndSaveFile(message, path.split('/').last).then((filePath) {
+      if (filePath.isNotEmpty) {
+        setState(() {
+          // تحديث المسار المحفوظ للملف في الرسالة
+          messageModel.path = filePath;
+        });
+      }
+    });
+  }
+}
+
+
+
+Future<String> decodeAndSaveFile(String base64String, String fileName) async {
+  try {
+    // فك تشفير السلسلة Base64 إلى بيانات بايت
+    List<int> fileBytes = base64Decode(base64String);
+
+    // تحديد المسار الذي سيتم فيه حفظ الملف
+    final directory = await Directory.systemTemp.createTemp(); // حفظ الملف في مسار مؤقت
+    String filePath = '${directory.path}/$fileName';
+
+    // إنشاء وحفظ الملف
+    File file = File(filePath);
+    await file.writeAsBytes(fileBytes);
+
+    print('File saved at: $filePath');
+    return filePath;
+  } catch (e) {
+    print('Error decoding and saving file: $e');
+    return '';
+  }
+}
+
+
 
   Future<void> saveDecryptedMessageToFile(String decryptedMessage) async {
     final directory = await Directory.systemTemp.createTemp();
@@ -616,7 +658,7 @@ void sendMessage(String message, int? sourceId, int? targetId, String path,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-          // buildImagePreview(),
+            // buildImagePreview(),
             buildMessageInput(),
             buildEmojiPicker(),
           ],
@@ -850,7 +892,8 @@ void sendMessage(String message, int? sourceId, int? targetId, String path,
                       setState(() {
                         popTime = 2;
                       });
-                      file = await _picker.pickImage(source: ImageSource.gallery);
+                      file =
+                          await _picker.pickImage(source: ImageSource.gallery);
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -859,10 +902,9 @@ void sendMessage(String message, int? sourceId, int? targetId, String path,
                             onImageSend: onSendImage,
                           ),
                         ),
-                      ).then((value){
-                         Navigator.pop(context);
-                        setState(() {
-                          });
+                      ).then((value) {
+                        Navigator.pop(context);
+                        setState(() {});
                       });
                     },
                   ),

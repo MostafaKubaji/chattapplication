@@ -1,4 +1,4 @@
-import 'package:chattapplication/Screens/LoginScreen.dart';
+import 'package:chattapplication/Screens/home_authentication_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -63,7 +63,7 @@ class LandingScreen extends StatelessWidget {
 
                   Navigator.pushAndRemoveUntil(
                     context,
-                    MaterialPageRoute(builder: (builder) => LoginScreen()),
+                    MaterialPageRoute(builder: (builder) => HomeScreen()),
                     (route) => false,
                   );
                   // عرض Snackbar للإشارة إلى حالة الاتصال

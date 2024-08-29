@@ -3,16 +3,16 @@ import 'package:chattapplication/Pages/CameraPage.dart';
 import 'package:chattapplication/Pages/ChatPage.dart';
 import 'package:chattapplication/Pages/StatusPage.dart';
 import 'package:flutter/material.dart';
-class Homescreen extends StatefulWidget {
-  const Homescreen({super.key,this.chatmodels,this.sourcechat});
+class Homescreen1 extends StatefulWidget {
+  const Homescreen1({super.key,this.chatmodels,this.sourcechat});
   final List<ChatModel>? chatmodels;
   final ChatModel? sourcechat;
 
   @override
-  State<Homescreen> createState() => _HomescreenState();
+  State<Homescreen1> createState() => _Homescreen1State();
 }
 
-class _HomescreenState extends State<Homescreen>
+class _Homescreen1State extends State<Homescreen1>
     with SingleTickerProviderStateMixin {
   late TabController _controller;
 
