@@ -31,7 +31,7 @@ dependencies:
   pointycastle: ^3.9.1
   no_screenshot: ^0.3.1
   flutter_face_api: ^5.2.1
-  google_mlkit_face_detection: ^0.8.0
+  google_mlkit_face_detection: ^0.11.0
   uuid: ^4.1.0
   fluttertoast: ^8.2.2
   dio: ^5.6.0

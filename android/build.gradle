@@ -1,18 +1,3 @@
-// // build.gradle in root project directory
-
-// buildscript {
-//     ext.kotlin_version = '2.0.20' // تأكد من أن الإصدار هو أحدث إصدار
-//     repositories {
-//         google()
-//         mavenCentral()
-//     }
-
-//     dependencies {
-//         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-//         // يمكنك إضافة الإضافات الأخرى هنا
-//     }
-// }
-
 allprojects {
     repositories {
         google()
@@ -31,3 +16,4 @@ subprojects {
 tasks.register("clean", Delete) {
     delete rootProject.buildDir
 }
+ext.kotlin_version = '1.6.10' // Change here
