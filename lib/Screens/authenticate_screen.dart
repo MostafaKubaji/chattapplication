@@ -94,23 +94,22 @@ class _AuthenticateScreenState extends State<AuthenticateScreen> {
                 },
                 onInputImage: (inputImage) async {
                   setState(() => isMatching = true);
-                  _faceFeatures = (await extractFaceFeatures(
-                      inputImage, _faceDetector));
+                  _faceFeatures =
+                      (await extractFaceFeatures(inputImage, _faceDetector));
                   if (_faceFeatures == null) {
                     // If no face detected, clear the stored image and show a message
                     setState(() {
-                      showToast('Face not detected. Please capture a new image.');
+                      showToast(
+                          'Face not detected. Please capture a new image.');
                       isMatching = true;
-                      _canAuthenticate= false;
-
+                      _canAuthenticate = false;
                     });
-
                   } else {
                     setState(() {
                       isMatching = false;
-                      _canAuthenticate= true;});
+                      _canAuthenticate = true;
+                    });
                   }
-
                 },
               ),
             ),
@@ -119,29 +118,29 @@ class _AuthenticateScreenState extends State<AuthenticateScreen> {
               Center(
                 child: isMatching
                     ? const CircularProgressIndicator(
-                  color: Color(0xff023E7D),
-                )
+                        color: Color(0xff023E7D),
+                      )
                     : ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xff023E7D),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 36.0, vertical: 12.0),
-                    textStyle: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 5,
-                  ),
-                  child: const Text("Authenticate"),
-                  onPressed: () {
-                    setState(() => isMatching = true);
-                    _fetchUsersAndMatchFace();
-                  },
-                ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xff023E7D),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 36.0, vertical: 12.0),
+                          textStyle: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 5,
+                        ),
+                        child: const Text("Authenticate"),
+                        onPressed: () {
+                          setState(() => isMatching = true);
+                          _fetchUsersAndMatchFace();
+                        },
+                      ),
               ),
             const SizedBox(height: 38),
           ],
@@ -149,8 +148,6 @@ class _AuthenticateScreenState extends State<AuthenticateScreen> {
       ),
     );
   }
-
-
 
   Future _setImage(Uint8List imageToAuthenticate) async {
     image2.bitmap = base64Encode(imageToAuthenticate);
@@ -182,8 +179,10 @@ class _AuthenticateScreenState extends State<AuthenticateScreen> {
 
     double ratioMouth = distMouth1 / distMouth2;
 
-    double distNoseToMouth1 = euclideanDistance(face1.noseBase!, face1.bottomMouth!);
-    double distNoseToMouth2 = euclideanDistance(face2.noseBase!, face2.bottomMouth!);
+    double distNoseToMouth1 =
+        euclideanDistance(face1.noseBase!, face1.bottomMouth!);
+    double distNoseToMouth2 =
+        euclideanDistance(face2.noseBase!, face2.bottomMouth!);
 
     double ratioNoseToMouth = distNoseToMouth1 / distNoseToMouth2;
 
@@ -196,10 +195,11 @@ class _AuthenticateScreenState extends State<AuthenticateScreen> {
 
   double euclideanDistance(Points p1, Points p2) {
     final sqr =
-    math.sqrt(math.pow((p1.x! - p2.x!), 2) + math.pow((p1.y! - p2.y!), 2));
+        math.sqrt(math.pow((p1.x! - p2.x!), 2) + math.pow((p1.y! - p2.y!), 2));
     return sqr;
   }
-List<UserModel> allUsers=[];
+
+  List<UserModel> allUsers = [];
   _fetchUsersAndMatchFace() async {
     try {
       // أرسل طلب GET إلى الخادم لجلب المستخدمين من MongoDB
@@ -211,7 +211,7 @@ List<UserModel> allUsers=[];
         users.clear(); // مسح قائمة المستخدمين
 
         log(data.length.toString(), name: "Total Registered Users");
-allUsers=[];
+        allUsers = [];
         for (var userData in data) {
           // تحويل البيانات إلى نموذج UserModel
           UserModel user = UserModel.fromJson(userData);
@@ -225,13 +225,9 @@ allUsers=[];
 
         log(users.length.toString(), name: "Filtered Users");
         setState(() {
-
           users.sort((a, b) => (((a.last as double) - 1).abs())
               .compareTo(((b.last as double) - 1).abs()));
         });
-
-
-
 
         _matchFaces(); // بدء عملية مطابقة الوجوه
       } else {
@@ -244,9 +240,7 @@ allUsers=[];
     }
   }
 
-
   _matchFaces() async {
-
     bool faceMatched = false;
 // print("---------------------"*100);
 
@@ -254,7 +248,8 @@ allUsers=[];
     for (var user in users) {
       final userModel = user.first as UserModel;
       ;
-      image1.bitmap = (user.first as UserModel).image; // تعيين الصورة من نموذج المستخدم
+      image1.bitmap =
+          (user.first as UserModel).image; // تعيين الصورة من نموذج المستخدم
       image1.imageType = regula.ImageType.PRINTED; // تعيين نوع الصورة
 
       var request = regula.MatchFacesRequest();
@@ -270,23 +265,25 @@ allUsers=[];
       dynamic str = await regula.FaceSDK.matchFacesSimilarityThresholdSplit(
           jsonEncode(response!.results), 0.75);
 
-
-      var split =
-      regula.MatchFacesSimilarityThresholdSplit.fromJson(json.decode(str)); // تحليل نتيجة تقسيم التشابه
+      var split = regula.MatchFacesSimilarityThresholdSplit.fromJson(
+          json.decode(str)); // تحليل نتيجة تقسيم التشابه
       setState(() {
         _similarity = split!.matchedFaces.isNotEmpty
-            ? (split.matchedFaces[0]!.similarity! * 100).toStringAsFixed(2) // تعيين قيمة التشابه
+            ? (split.matchedFaces[0]!.similarity! * 100)
+                .toStringAsFixed(2) // تعيين قيمة التشابه
             : "error";
         log("similarity: $_similarity"); // تسجيل قيمة التشابه
 
-        if (_similarity != "error" && double.parse(_similarity) > 90.00) { // إذا كان التشابه أكثر من 90%
+        if (_similarity != "error" && double.parse(_similarity) > 90.00) {
+          // إذا كان التشابه أكثر من 90%
           faceMatched = true; // تعيين حالة تطابق الوجه إلى true
           loggingUser = user.first; // تعيين المستخدم الذي تم تسجيل الدخول إليه
         } else {
           faceMatched = false; // تعيين حالة تطابق الوجه إلى false
         }
       });
-      if (faceMatched) { // إذا تم تطابق الوجه
+      if (faceMatched) {
+        // إذا تم تطابق الوجه
         setState(() {
           trialNumber = 1; // إعادة تعيين عدد المحاولات
           isMatching = false; // تعيين حالة التحقق إلى false
@@ -296,11 +293,13 @@ allUsers=[];
           Navigator.of(context).push(
             MaterialPageRoute(
               builder: (context) => Homescreen1(
-                  chatmodels: chatsModels,
-                  sourcechat: sourceChat,
-                  allUsers: allUsers,
-                  currentUser: loggingUser,
-                ),/// homepage chat
+                chatmodels: chatsModels,
+                sourcechat: sourceChat,
+                allUsers: allUsers,
+                currentUser: loggingUser,
+              ),
+
+              /// homepage chat
             ),
           );
         }
@@ -308,39 +307,41 @@ allUsers=[];
       }
     }
 
-    if (!faceMatched) { // إذا لم يتم تطابق الوجه
-      if (trialNumber == 4) { // إذا كان عدد المحاولات 4
+    if (!faceMatched) {
+      // إذا لم يتم تطابق الوجه
+      if (trialNumber == 4) {
+        // إذا كان عدد المحاولات 4
         setState(() {
           isMatching = false; // تعيين حالة التحقق إلى false
           trialNumber++; // زيادة عدد المحاولات
         }); // إعادة تعيين عدد المحاولات إلى 1
         _showFailureDialog(
           title: "Redeem Failed", // عنوان حوار الفشل
-          description: "Face doesn't match. Please try again.", // وصف حوار الفشل
-
+          description:
+              "Face doesn't match. Please try again.", // وصف حوار الفشل
         );
-      } else if (trialNumber == 3) { // إذا كان عدد المحاولات 3
+      } else if (trialNumber == 3) {
+        // إذا كان عدد المحاولات 3
         setState(() {
           isMatching = false; // تعيين حالة التحقق إلى false
           trialNumber++; // زيادة عدد المحاولات
         });
         ;
-      } else { // إذا كان عدد المحاولات أقل من 3
+      } else {
+        // إذا كان عدد المحاولات أقل من 3
         setState(() {
           showToast('Face not detected. Please capture a new image.');
           isMatching = false;
           trialNumber++;
-
         });
         _showFailureDialog(
           title: "Redeem Failed", // عنوان حوار الفشل
-          description: "Face doesn't match. Please try again.", // وصف حوار الفشل
-
+          description:
+              "Face doesn't match. Please try again.", // وصف حوار الفشل
         );
       }
     }
   }
-
 
   Future<void> _showFailureDialog({
     required String title,
@@ -369,7 +370,9 @@ allUsers=[];
       },
     );
   }
-  void showToast(msg) { // عرض رسالة منبثقة
+
+  void showToast(msg) {
+    // عرض رسالة منبثقة
     Fluttertoast.showToast(
       msg: msg, // نص الرسالة
       toastLength: Toast.LENGTH_SHORT, // طول الرسالة
@@ -377,7 +380,9 @@ allUsers=[];
       timeInSecForIosWeb: 5, // الوقت للرسائل على iOS والويب
     );
   }
-  final FaceDetector _faceDetector = FaceDetector( // إنشاء كاشف الوجوه
+
+  final FaceDetector _faceDetector = FaceDetector(
+    // إنشاء كاشف الوجوه
     options: FaceDetectorOptions(
       enableLandmarks: true, // تفعيل المعالم
       performanceMode: FaceDetectorMode.accurate, // وضع الأداء الدقيق
@@ -388,15 +393,12 @@ allUsers=[];
   var image1 = regula.MatchFacesImage(); // الصورة الأولى لمطابقة الوجوه
   var image2 = regula.MatchFacesImage(); // الصورة الثانية لمطابقة الوجوه
 
-
-
   bool isMatching = false;
   bool _canAuthenticate = false;
   List<List> users = [];
   String _similarity = "error";
   UserModel? loggingUser;
   int trialNumber = 1;
-
 
   @override
   void dispose() {

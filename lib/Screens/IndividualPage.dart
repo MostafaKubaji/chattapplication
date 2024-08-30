@@ -311,19 +311,19 @@ class _IndividualPageState extends State<IndividualPage> {
     }
 
     // إضافة الرسالة غير المشفرة إلى القائمة عند المرسل
-    setMessage("source", message, path, isImage: isImage, isFile: isFile);
+    setMessage("source", message, path, isImage: isImage, isFile: isFile,isMine: true);
     print("Message sent and added to source list: $message");
   }
 
 void setMessage(String type, String message, String path,
-    {bool? isImage = false, bool? isFile = false}) {
+    {bool? isImage = false, bool? isFile = false,bool isMine=false}) {
   MessageModel messageModel = MessageModel(
     type: type,
     message: message,
     path: path,
     isImage: isImage,
     isFile: isFile,
-    isMine: false,
+    isMine: isMine,
     time: DateTime.now().toString().substring(10, 16),
   );
 
@@ -610,16 +610,19 @@ Future<String> decodeAndSaveFile(String base64String, String fileName) async {
                     }
                   } else if (message.isImage == true) {
                     // final isMine=message.
-                    return Row(
-                      mainAxisSize: MainAxisSize.max,
-                      mainAxisAlignment: message.isMine?MainAxisAlignment.start:MainAxisAlignment.end,
-                      children: [
-                        ImageChatWidget(
-                          data: message.message ?? '',
-                          message: message.message ?? '',
-                          time: message.time ?? '',
-                        ),
-                      ],
+                    return SizedBox(
+                      width: MediaQuery.of(context).size.width,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.max,
+                        mainAxisAlignment: !message.isMine?MainAxisAlignment.start:MainAxisAlignment.end,
+                        children: [
+                          ImageChatWidget(
+                            data: message.message ?? '',
+                            message: message.message ?? '',
+                            time: message.time ?? '',
+                          ),
+                        ],
+                      ),
                     );
                   } else if (message.type == "source") {
                     if (message.path != null && message.path!.isNotEmpty) {
