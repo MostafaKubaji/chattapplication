@@ -19,7 +19,7 @@ class _LoginScreenState extends State<LoginScreen> {
       currentMessage: 'hi mostafa',
       time: "4:00",
       icon: 'person.svg',
-      id: 1,
+      id: 1.toString(),
     ),
     ChatModel(
       name: 'عمر المرعي',
@@ -27,7 +27,7 @@ class _LoginScreenState extends State<LoginScreen> {
       currentMessage: 'hi Omar',
       time: "5:00",
       icon: 'person.svg',
-      id: 2,
+      id: 2.toString(),
     ),
     ChatModel(
       name: 'محمد سكندر',
@@ -35,7 +35,7 @@ class _LoginScreenState extends State<LoginScreen> {
       currentMessage: 'hi Mohamed',
       time: "8:00",
       icon: 'person.svg',
-      id: 3,
+      id: 3.toString(),
     ),
     ChatModel(
       name: "الأستاذ باسم",
@@ -43,7 +43,7 @@ class _LoginScreenState extends State<LoginScreen> {
       currentMessage: 'call me in 2:00',
       time: "8:30",
       icon: 'person.svg',
-      id: 4,
+      id: 4.toString(),
     ),
   ];
 
@@ -60,6 +60,7 @@ class _LoginScreenState extends State<LoginScreen> {
               MaterialPageRoute(
                 builder: (builder) => Homescreen1(
                   chatmodels: chatsModels,
+                  allUsers: [],
                   sourcechat: sourceChat,
                 ),
               ),

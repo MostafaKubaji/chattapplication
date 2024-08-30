@@ -170,8 +170,8 @@ class _IndividualPageState extends State<IndividualPage> {
       socket = IO.io("$serverIP", <String, dynamic>{
         "transports": ["websocket"],
         "autoConnect": false,
+         "query": {"id": widget.sourceChat?.id},
       });
-
       socket?.connect();
 
       socket?.onConnect((data) {
@@ -266,23 +266,24 @@ class _IndividualPageState extends State<IndividualPage> {
     }
   }
 
-  void sendMessage(String message, int? sourceId, int? targetId, String path,
+  void sendMessage(String message, String? sourceId, String? targetId, String path,
       {bool isImage = false, bool isFile = false}) {
-    if (sourceId == null || targetId == null || message.isEmpty) {
-      print("Error: sourceId, targetId, or message is null or empty");
-      return;
-    }
+    // if (sourceId == null || targetId == null || message.isEmpty) {
+    //   print("Error: sourceId, targetId, or message is null or empty");
+    //   return;
+    // }
 
     // تشفير الرسالة باستخدام AES
     String encryptedMessage = encryptMessage(message);
 
     if (targetPublicKey == null) {
       // إذا لم يكن هناك مفتاح عام للطرف الآخر، إرسال الرسالة بدون تشفير مفتاح AES
+      
       socket?.emit(
         "message",
         {
           "message": encryptedMessage,
-          "sourceId": sourceId,
+          "sourceId": widget.sourceChat?.id,
           "targetId": targetId,
           "isImage": isImage,
           "isFile": isFile,
@@ -322,6 +323,7 @@ void setMessage(String type, String message, String path,
     path: path,
     isImage: isImage,
     isFile: isFile,
+    isMine: false,
     time: DateTime.now().toString().substring(10, 16),
   );
 
@@ -607,10 +609,17 @@ Future<String> decodeAndSaveFile(String base64String, String fileName) async {
                       );
                     }
                   } else if (message.isImage == true) {
-                    return ImageChatWidget(
-                      data: message.message ?? '',
-                      message: message.message ?? '',
-                      time: message.time ?? '',
+                    // final isMine=message.
+                    return Row(
+                      mainAxisSize: MainAxisSize.max,
+                      mainAxisAlignment: message.isMine?MainAxisAlignment.start:MainAxisAlignment.end,
+                      children: [
+                        ImageChatWidget(
+                          data: message.message ?? '',
+                          message: message.message ?? '',
+                          time: message.time ?? '',
+                        ),
+                      ],
                     );
                   } else if (message.type == "source") {
                     if (message.path != null && message.path!.isNotEmpty) {

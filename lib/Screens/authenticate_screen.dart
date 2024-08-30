@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:developer';
 import 'dart:typed_data';
 import 'dart:math' as math;
+import 'package:chattapplication/Model/ChatModel.dart';
+import 'package:chattapplication/Screens/Homescreen.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http; // استيراد مكتبة HTTP
@@ -25,6 +27,42 @@ class AuthenticateScreen extends StatefulWidget {
 class _AuthenticateScreenState extends State<AuthenticateScreen> {
   @override
   @override
+  ChatModel? sourceChat;
+  List<ChatModel> chatsModels = [
+    ChatModel(
+      name: 'مصطفى',
+      isGroup: false,
+      currentMessage: 'hi mostafa',
+      time: "4:00",
+      icon: 'person.svg',
+      id: 1.toString(),
+    ),
+    ChatModel(
+      name: 'عمر المرعي',
+      isGroup: false,
+      currentMessage: 'hi Omar',
+      time: "5:00",
+      icon: 'person.svg',
+      id: 2.toString(),
+    ),
+    ChatModel(
+      name: 'محمد سكندر',
+      isGroup: false,
+      currentMessage: 'hi Mohamed',
+      time: "8:00",
+      icon: 'person.svg',
+      id: 3.toString(),
+    ),
+    ChatModel(
+      name: "الأستاذ باسم",
+      isGroup: false,
+      currentMessage: 'call me in 2:00',
+      time: "8:30",
+      icon: 'person.svg',
+      id: 4.toString(),
+    ),
+  ];
+
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -161,7 +199,7 @@ class _AuthenticateScreenState extends State<AuthenticateScreen> {
     math.sqrt(math.pow((p1.x! - p2.x!), 2) + math.pow((p1.y! - p2.y!), 2));
     return sqr;
   }
-
+List<UserModel> allUsers=[];
   _fetchUsersAndMatchFace() async {
     try {
       // أرسل طلب GET إلى الخادم لجلب المستخدمين من MongoDB
@@ -173,11 +211,11 @@ class _AuthenticateScreenState extends State<AuthenticateScreen> {
         users.clear(); // مسح قائمة المستخدمين
 
         log(data.length.toString(), name: "Total Registered Users");
-
+allUsers=[];
         for (var userData in data) {
           // تحويل البيانات إلى نموذج UserModel
           UserModel user = UserModel.fromJson(userData);
-
+          allUsers.add(user);
           // قارن ميزات الوجه مع المستخدمين المسجلين
           double similarity = compareFaces(_faceFeatures!, user.faceFeatures!);
           if (similarity >= 0.8 && similarity <= 1.5) {
@@ -210,7 +248,9 @@ class _AuthenticateScreenState extends State<AuthenticateScreen> {
   _matchFaces() async {
 
     bool faceMatched = false;
+// print("---------------------"*100);
 
+// print(users);
     for (var user in users) {
       final userModel = user.first as UserModel;
       ;
@@ -255,7 +295,12 @@ class _AuthenticateScreenState extends State<AuthenticateScreen> {
         if (mounted) {
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (context) => AuthenticatedUserScreen(user: loggingUser!), /// homepage chat
+              builder: (context) => Homescreen1(
+                  chatmodels: chatsModels,
+                  sourcechat: sourceChat,
+                  allUsers: allUsers,
+                  currentUser: loggingUser,
+                ),/// homepage chat
             ),
           );
         }

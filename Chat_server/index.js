@@ -30,44 +30,52 @@ mongoose.connect("mongodb://localhost:27017/chat_DB", { // استخدم عنوا
 const clients = {}; // Store connected clients
 
 io.on("connection", (socket) => {
-    console.log("A client connected: ", socket.id);
+    console.log("-"*100)
+    console.log("A client connected: ", socket);
+    console.log("-"*100)
 
     socket.on("signin", (id) => {
-        clients[id] = socket;
-        console.log("Clients connected:", Object.keys(clients));
+        console.log({
+            id:id,
+            socket:socket
+        })
+        // console.log({id:id,clients:clients});
+        clients[socket.handshake.query.id] = socket;
+        console.log("Clients connected:", Object.keys( clients));
     });
-
     socket.on("message", async (msg) => {
+        
         console.log("Received message:", msg);
-        const { targetId, message, sourceId, isImage } = msg;
+        const { targetId, message, sourceId, isImage,isFile } = msg;
 
         try {
-            const sourceObjectId = new mongoose.Types.ObjectId(sourceId);
-            const targetObjectId = new mongoose.Types.ObjectId(targetId);
+            // const sourceObjectId = new mongoose.Types.ObjectId(sourceId);
+            // const targetObjectId = new mongoose.Types.ObjectId(targetId);
 
-            let conversation = await Conversation.findOne({
-                participants: { $all: [sourceObjectId, targetObjectId] }
-            });
+            // let conversation = await Conversation.findOne({
+            //     participants: { $all: [sourceObjectId, targetObjectId] }
+            // });
 
-            if (!conversation) {
-                conversation = new Conversation({
-                    participants: [sourceObjectId, targetObjectId],
-                    messages: [],
-                });
-            }
+            // if (!conversation) {
+            //     conversation = new Conversation({
+            //         participants: [sourceObjectId, targetObjectId],
+            //         messages: [],
+            //     });
+            // }
 
             const newMessage = new Message({
-                sourceId: sourceObjectId,
-                targetId: targetObjectId,
+                sourceId: sourceId,
+                targetId: targetId,
                 message,
                 isImage,
+                isFile,
             });
 
             await newMessage.save();
 
-            conversation.messages.push(newMessage._id);
-            conversation.lastMessageAt = new Date();
-            await conversation.save();
+            // conversation.messages.push(newMessage._id);
+            // conversation.lastMessageAt = new Date();
+            // await conversation.save();
 
             console.log("Message saved:", message);
 
@@ -77,6 +85,7 @@ io.on("connection", (socket) => {
                     message: newMessage.message,
                     sourceId: newMessage.sourceId,
                     isImage: newMessage.isImage,
+                    isFile: newMessage.isFile,
                     createdAt: newMessage.createdAt
                 });
                 console.log(`Message sent to user ${targetId} with socket ID: ${clients[targetId].id}`);

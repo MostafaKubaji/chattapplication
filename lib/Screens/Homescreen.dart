@@ -1,12 +1,15 @@
 import 'package:chattapplication/Model/ChatModel.dart';
+import 'package:chattapplication/Model/user_model.dart';
 import 'package:chattapplication/Pages/CameraPage.dart';
 import 'package:chattapplication/Pages/ChatPage.dart';
 import 'package:chattapplication/Pages/StatusPage.dart';
 import 'package:flutter/material.dart';
 class Homescreen1 extends StatefulWidget {
-  const Homescreen1({super.key,this.chatmodels,this.sourcechat});
+  const Homescreen1({super.key,this.chatmodels,this.sourcechat,required this.allUsers, this.currentUser});
   final List<ChatModel>? chatmodels;
   final ChatModel? sourcechat;
+  final List<UserModel> allUsers;
+  final UserModel? currentUser;
 
   @override
   State<Homescreen1> createState() => _Homescreen1State();
@@ -101,6 +104,8 @@ class _Homescreen1State extends State<Homescreen1>
           Chatpage(
             chatmodels: widget.chatmodels,
             sourcechat: widget.sourcechat,
+            allUsers:widget.allUsers,
+            currentUser: widget.currentUser,
           ),
           StatusPage(),
           Text("CALLS"),

@@ -47,6 +47,7 @@ router.post("/addimage", upload.single("img"), (req, res) => {
  // مسار لجلب جميع المستخدمين
  router.get('/users', async (req, res) => {
    try {
+    console.log("user fetched")
      const users = await UserModel.find(); // جلب جميع المستخدمين من MongoDB
      res.status(200).json(users); // إرسال البيانات إلى العميل (تطبيق Flutter)
    } catch (err) {
