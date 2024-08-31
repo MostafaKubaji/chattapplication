@@ -85,7 +85,7 @@ io.on("connection", (socket) => {
                     message: newMessage.message,
                     sourceId: newMessage.sourceId,
                     isImage: newMessage.isImage,
-                    isFile: newMessage.isFile,
+                    isFile: isFile,
                     createdAt: newMessage.createdAt
                 });
                 console.log(`Message sent to user ${targetId} with socket ID: ${clients[targetId].id}`);

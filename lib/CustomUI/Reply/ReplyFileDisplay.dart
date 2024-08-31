@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:nativewrappers/_internal/vm/lib/internal_patch.dart';
 
 import 'package:flutter/material.dart';
 import 'package:open_file/open_file.dart';
@@ -24,7 +23,7 @@ class ReplyFileDisplay extends StatelessWidget {
       onTap: () async{
         final filePyte= base64Decode(filePath);
         final path=await getApplicationCacheDirectory();
-        File file=File("$path/file.pdf",);
+        File file=File("${path.path}/file${DateTime.now().toIso8601String()}.pdf",);
         file=await file.writeAsBytes(filePyte);
 
         OpenFile.open(file.path); // فتح الملف عند الضغط عليه
