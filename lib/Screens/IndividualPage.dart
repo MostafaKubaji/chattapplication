@@ -595,7 +595,7 @@ Future<String> decodeAndSaveFile(String base64String, String fileName) async {
                   }
 
                   if (message.isFile == true) {
-                    if (message.type == "source") {
+                    if (message.isMine) {
                       return OwnFileDisplay(
                         filePath: message.path ?? '',
                         time: message.time ?? '',

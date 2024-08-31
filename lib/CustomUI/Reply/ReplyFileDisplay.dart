@@ -1,5 +1,10 @@
+import 'dart:convert';
+import 'dart:io';
+import 'dart:nativewrappers/_internal/vm/lib/internal_patch.dart';
+
 import 'package:flutter/material.dart';
 import 'package:open_file/open_file.dart';
+import 'package:path_provider/path_provider.dart';
 
 class ReplyFileDisplay extends StatelessWidget {
   final String filePath;
@@ -16,8 +21,13 @@ class ReplyFileDisplay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () {
-        OpenFile.open(filePath); // فتح الملف عند الضغط عليه
+      onTap: () async{
+        final filePyte= base64Decode(filePath);
+        final path=await getApplicationCacheDirectory();
+        File file=File("$path/file.pdf",);
+        file=await file.writeAsBytes(filePyte);
+
+        OpenFile.open(file.path); // فتح الملف عند الضغط عليه
       },
       child:Align(
         alignment: Alignment.centerLeft,
@@ -42,7 +52,7 @@ class ReplyFileDisplay extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        filePath.split('/').last, // عرض اسم الملف فقط
+                       "file", // عرض اسم الملف فقط
                         style: TextStyle(fontSize: 18, color: Colors.black),
                         overflow: TextOverflow.ellipsis,
                       ),
