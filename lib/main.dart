@@ -6,7 +6,7 @@ import 'dart:io';
 
 
 List<CameraDescription>? cameras;
-//888
+//Final project
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
