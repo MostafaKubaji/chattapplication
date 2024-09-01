@@ -39,7 +39,6 @@ io.on("connection", (socket) => {
             id:id,
             socket:socket
         })
-        // console.log({id:id,clients:clients});
         clients[socket.handshake.query.id] = socket;
         console.log("Clients connected:", Object.keys( clients));
     });
@@ -49,19 +48,6 @@ io.on("connection", (socket) => {
         const { targetId, message, sourceId, isImage,isFile } = msg;
 
         try {
-            // const sourceObjectId = new mongoose.Types.ObjectId(sourceId);
-            // const targetObjectId = new mongoose.Types.ObjectId(targetId);
-
-            // let conversation = await Conversation.findOne({
-            //     participants: { $all: [sourceObjectId, targetObjectId] }
-            // });
-
-            // if (!conversation) {
-            //     conversation = new Conversation({
-            //         participants: [sourceObjectId, targetObjectId],
-            //         messages: [],
-            //     });
-            // }
 
             const newMessage = new Message({
                 sourceId: sourceId,
@@ -72,10 +58,6 @@ io.on("connection", (socket) => {
             });
 
             await newMessage.save();
-
-            // conversation.messages.push(newMessage._id);
-            // conversation.lastMessageAt = new Date();
-            // await conversation.save();
 
             console.log("Message saved:", message);
 

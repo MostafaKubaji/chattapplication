@@ -61,7 +61,6 @@ class _IndividualPageState extends State<IndividualPage> {
   @override
   void initState() {
     super.initState();
-    // secureScreen();
     disableScreenshot();
     listenForScreenshot();
     connect();
@@ -268,10 +267,7 @@ class _IndividualPageState extends State<IndividualPage> {
 
   void sendMessage(String message, String? sourceId, String? targetId, String path,
       {bool isImage = false, bool isFile = false}) {
-    // if (sourceId == null || targetId == null || message.isEmpty) {
-    //   print("Error: sourceId, targetId, or message is null or empty");
-    //   return;
-    // }
+
 
     // تشفير الرسالة باستخدام AES
     String encryptedMessage = encryptMessage(message);
