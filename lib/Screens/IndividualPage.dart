@@ -272,9 +272,7 @@ class _IndividualPageState extends State<IndividualPage> {
     // تشفير الرسالة باستخدام AES
     String encryptedMessage = encryptMessage(message);
 
-    if (targetPublicKey == null) {
-      // إذا لم يكن هناك مفتاح عام للطرف الآخر، إرسال الرسالة بدون تشفير مفتاح AES
-      
+    if (targetPublicKey == null) {      
       socket?.emit(
         "message",
         {
@@ -567,13 +565,13 @@ Future<String> decodeAndSaveFile(String base64String, String fileName) async {
             Expanded(
               // child: buildMessagesList(),
 
-              child: ListView.builder(
+            iew.builder(
                 controller: _scrollController,
                 itemCount: messages.length + 1,
                 itemBuilder: (context, index) {
                   if (index == messages.length) {
                     return SizedBox(height: 70);
-                  }
+                  }  child: ListV
                   final message = messages[index];
 
                   String getFileType(String? path) {
